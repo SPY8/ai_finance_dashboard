@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>家庭财务看板 · DEMO</title>
+<title>资产配置看板 · V2.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Serif+SC:wght@600;700&display=swap" rel="stylesheet">
@@ -369,6 +369,7 @@
   .btn:hover{border-color:var(--line-2);color:var(--text-0)}
   .btn.primary{border-color:rgba(122,162,255,.35);color:var(--text-0)}
   .btn.primary:hover{border-color:rgba(122,162,255,.6)}
+  .btn.ghost{background:transparent}
 
   .tt-bubble{position:fixed;z-index:9999;max-width:380px;min-width:220px;pointer-events:none;opacity:0;transform:translateY(6px);transition:opacity .12s ease, transform .12s ease;background:rgba(19,23,31,.98);border:1px solid rgba(42,50,67,.9);border-radius:10px;box-shadow:0 18px 48px rgba(0,0,0,.45);padding:10px 12px;color:var(--text-1);font-size:12px;line-height:1.55}
   .tt-bubble.show{opacity:1;transform:translateY(0)}
@@ -387,6 +388,7 @@
   .modal-body ul{margin:0;padding-left:16px}
   .modal-body li{margin:4px 0}
   .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:12px 16px;border-top:1px solid var(--line);background:var(--bg-2)}
+  .jump-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
 
   /* ============= MOBILE ============= */
   @media (max-width: 820px){
@@ -405,7 +407,7 @@
   <header class="top">
     <div class="title">
       <h1 class="serif">家庭财务看板</h1>
-      <span class="v">DEMO</span>
+      <span class="v">V2.5</span>
       <p>资产 · 负债 · 现金流</p>
     </div>
     <div class="meta">
@@ -430,6 +432,7 @@
 
   <!-- =========== Tab 1: 资产配置 =========== -->
   <div class="tab-pane active" id="tab-assets">
+    <div id="jump-kpis"></div>
     <div class="lia-card" id="beginner-strip" style="display:none;margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
         <div>
@@ -444,6 +447,16 @@
         </div>
       </div>
     </div>
+    <div class="lia-card" id="advanced-strip" style="display:none;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+        <div style="color:var(--text-2);font-size:12px;line-height:1.6">
+          新手模式：已隐藏“告警表/趋势/时间线/增长预测/里程碑”等高级区块
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn" id="advanced-toggle" type="button">展开高级</button>
+        </div>
+      </div>
+    </div>
     <div id="health-check"></div>
     <div id="tencent-ladder"></div>
     <div id="reconcile-bar"></div>
@@ -452,29 +465,9 @@
     <div id="swr-card"></div>
 
     <section>
+      <div id="jump-mods"></div>
       <h2>模块画像（大类配置）<span class="hint">竖白线 = 目标值；浅色带 = 阈值区间</span></h2>
       <div class="mods" id="mods"></div>
-    </section>
-
-    <section>
-      <h2>偏离告警 · Sub 项明细</h2>
-      <div class="alerts">
-        <table class="al" id="alerts">
-          <thead>
-            <tr>
-              <th title="模块（大类）名称">模块</th>
-              <th title="子项名称（具体账户/标的）">子项</th>
-              <th class="r" title="市值（折RMB）：原币金额/证券市值按汇率折算">市值（RMB）</th>
-              <th class="r" title="实际占比=该项市值/总盘">实际占比</th>
-              <th class="r" title="该模块目标占比（来自target.json）">大类目标</th>
-              <th class="r" title="模块阈值：超过±阈值会触发超标/偏低告警">大类阈值</th>
-              <th class="r" title="偏离Δ=实际占比-目标占比（单位pp）">偏离</th>
-              <th title="模块状态：正常/大类超标/大类偏低">大类状态</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
     </section>
 
     <section>
@@ -494,34 +487,58 @@
     </section>
 
     <section>
+      <div id="jump-pools"></div>
       <h2>池分离 · RMB 池 vs 海外池<span class="hint">人民币出不去；海外子弹只能在海外腾挪</span></h2>
       <div class="mods" id="pools"></div>
     </section>
 
-    <section>
-      <h2>趋势图 · 历史快照<span class="hint">所有更新自动归档到 <code style="background:var(--bg-2);padding:2px 6px;border-radius:4px">data/history.json</code></span></h2>
-      <div class="trends" id="trends"></div>
-    </section>
-
-    <section>
-      <h2>更新历史 · Timeline</h2>
-      <div class="alerts">
-        <div style="display:grid;grid-template-columns:90px 1fr 110px 70px;gap:12px;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--bg-2)">
-          <div>日期</div><div>备注</div><div style="text-align:right">总盘</div><div style="text-align:right">环比</div>
+    <div id="advanced-assets">
+      <section>
+        <h2>偏离告警 · Sub 项明细</h2>
+        <div class="alerts">
+          <table class="al" id="alerts">
+            <thead>
+              <tr>
+                <th title="模块（大类）名称">模块</th>
+                <th title="子项名称（具体账户/标的）">子项</th>
+                <th class="r" title="市值（折RMB）：原币金额/证券市值按汇率折算">市值（RMB）</th>
+                <th class="r" title="实际占比=该项市值/总盘">实际占比</th>
+                <th class="r" title="该模块目标占比（来自target.json）">大类目标</th>
+                <th class="r" title="模块阈值：超过±阈值会触发超标/偏低告警">大类阈值</th>
+                <th class="r" title="偏离Δ=实际占比-目标占比（单位pp）">偏离</th>
+                <th title="模块状态：正常/大类超标/大类偏低">大类状态</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
         </div>
-        <div class="timeline" id="timeline"></div>
-      </div>
-    </section>
+      </section>
 
-    <section>
-      <h2>🚀 长期增长预测<span class="hint">基于 expectedReturn 加权 · 三档情景对比</span></h2>
-      <div class="lia-card" id="growth-projection"></div>
-    </section>
+      <section>
+        <h2>趋势图 · 历史快照<span class="hint">所有更新自动归档到 <code style="background:var(--bg-2);padding:2px 6px;border-radius:4px">data/history.json</code></span></h2>
+        <div class="trends" id="trends"></div>
+      </section>
 
-    <section>
-      <h2>🏁 里程碑 · FIRE 路径动作清单<span class="hint">来自资产配置 V2.0 战术执行手册 P0/P1/P2/P3</span></h2>
-      <div class="lia-card" id="milestones"></div>
-    </section>
+      <section>
+        <h2>更新历史 · Timeline</h2>
+        <div class="alerts">
+          <div style="display:grid;grid-template-columns:90px 1fr 110px 70px;gap:12px;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--bg-2)">
+            <div>日期</div><div>备注</div><div style="text-align:right">总盘</div><div style="text-align:right">环比</div>
+          </div>
+          <div class="timeline" id="timeline"></div>
+        </div>
+      </section>
+
+      <section>
+        <h2>🚀 长期增长预测<span class="hint">基于 expectedReturn 加权 · 三档情景对比</span></h2>
+        <div class="lia-card" id="growth-projection"></div>
+      </section>
+
+      <section>
+        <h2>🏁 里程碑 · FIRE 路径动作清单<span class="hint">来自资产配置 V2.0 战术执行手册 P0/P1/P2/P3</span></h2>
+        <div class="lia-card" id="milestones"></div>
+      </section>
+    </div>
   </div>
 
   <!-- =========== Tab 2: 负债与刚性 =========== -->
@@ -638,6 +655,11 @@
       <li>模块画像：看哪些模块超/偏低；再看具体子项的 Δ(pp)。</li>
       <li>池分离：RMB 池与海外池物理隔离，不能互相“补位”。</li>
     </ul>
+    <div class="jump-row">
+      <button class="btn ghost" data-jump="#jump-kpis" type="button">跳到 KPI</button>
+      <button class="btn ghost" data-jump="#jump-mods" type="button">跳到 模块</button>
+      <button class="btn ghost" data-jump="#jump-pools" type="button">跳到 池分离</button>
+    </div>
     <h3>交互</h3>
     <ul>
       <li>悬停任意数字/表头：显示口径说明。</li>
@@ -811,18 +833,33 @@
     const openBtn = document.getElementById("help-open");
     const closeBtn = document.getElementById("help-close");
     const beginnerStrip = document.getElementById("beginner-strip");
+    const advancedStrip = document.getElementById("advanced-strip");
+    const advancedAssets = document.getElementById("advanced-assets");
+    const advancedToggle = document.getElementById("advanced-toggle");
     const beginnerOn = document.getElementById("beginner-on");
     const beginnerOff = document.getElementById("beginner-off");
     const beginnerOff2 = document.getElementById("beginner-off-2");
     const LS_KEY = "afd_beginner";
+    const LS_ADV = "afd_advanced_visible";
 
     function setBeginner(on) {
       const v = !!on;
       localStorage.setItem(LS_KEY, v ? "1" : "0");
       beginnerStrip.style.display = v ? "" : "none";
+      if (advancedStrip) advancedStrip.style.display = v ? "" : "none";
+      if (advancedAssets) {
+        const advVisible = localStorage.getItem(LS_ADV) === "1";
+        advancedAssets.style.display = v && !advVisible ? "none" : "";
+        if (advancedToggle) advancedToggle.textContent = (v && !advVisible) ? "展开高级" : "收起高级";
+      }
     }
     function getBeginner() {
       return localStorage.getItem(LS_KEY) === "1";
+    }
+    function setAdvancedVisible(v) {
+      localStorage.setItem(LS_ADV, v ? "1" : "0");
+      if (advancedAssets) advancedAssets.style.display = v ? "" : "none";
+      if (advancedToggle) advancedToggle.textContent = v ? "收起高级" : "展开高级";
     }
     function open() {
       mask.classList.add("show");
@@ -838,8 +875,32 @@
     beginnerOn.addEventListener("click", () => setBeginner(true));
     beginnerOff.addEventListener("click", () => setBeginner(false));
     beginnerOff2.addEventListener("click", () => setBeginner(false));
+    if (advancedToggle) {
+      advancedToggle.addEventListener("click", () => {
+        const visible = advancedAssets && advancedAssets.style.display !== "none";
+        setAdvancedVisible(!visible);
+      });
+    }
+
+    modal.addEventListener("click", (e) => {
+      const btn = e.target && e.target.closest ? e.target.closest("[data-jump]") : null;
+      if (!btn) return;
+      const sel = btn.getAttribute("data-jump");
+      if (!sel) return;
+      close();
+      const tab = document.querySelector('.tab-btn[data-tab="assets"]');
+      if (tab && !tab.classList.contains("active")) tab.click();
+      requestAnimationFrame(() => {
+        const el = document.querySelector(sel);
+        if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
 
     setBeginner(getBeginner());
+    if (getBeginner() && localStorage.getItem(LS_ADV) == null) {
+      localStorage.setItem(LS_ADV, "0");
+      setAdvancedVisible(false);
+    }
   })();
 </script>
 </body>

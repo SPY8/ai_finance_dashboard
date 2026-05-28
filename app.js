@@ -440,7 +440,8 @@ python3 -m http.server 8765</pre>
                     })() : ''}
                   </div>
                   <div class="sub-state ${subStateCls}" title="${stateTitle}">
-                    ${pct(s.actualPct,1)}<br/><span style="font-size:10px">${subDeltaTxt}</span>
+                    <span style="font-size:10px;color:var(--text-2)">占比</span> ${pct(s.actualPct,1)}<br/>
+                    <span style="font-size:10px;color:var(--text-2)">${subDeltaTxt || "Δ —"}</span>
                   </div>
                 </div>
               `;
