@@ -5,10 +5,39 @@
 window.AssetCore = (function () {
   'use strict';
 
+  const PRIVACY_LS_KEY = "afd_hide_amounts";
+  const PRIVACY_MASK = "••••";
+
+  function isPrivacyMode() {
+    try {
+      return window.localStorage && window.localStorage.getItem(PRIVACY_LS_KEY) === "1";
+    } catch (err) {
+      return false;
+    }
+  }
+
+  function setPrivacyMode(on) {
+    try {
+      if (window.localStorage) window.localStorage.setItem(PRIVACY_LS_KEY, on ? "1" : "0");
+    } catch (err) {
+      // Ignore localStorage failures and fall back to visible numbers.
+    }
+    return !!on;
+  }
+
+  function maskedValue() {
+    return PRIVACY_MASK;
+  }
+
   // ========== 格式化 ==========
-  function fmt(n)  { return n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US"); }
+  function fmt(n)  {
+    if (n == null || isNaN(n)) return "—";
+    if (isPrivacyMode()) return maskedValue();
+    return Math.round(n).toLocaleString("en-US");
+  }
   function fmtK(n) {
     if (n == null || isNaN(n)) return "—";
+    if (isPrivacyMode()) return maskedValue();
     if (Math.abs(n) >= 1e8) return (n/1e8).toFixed(2) + "亿";
     if (Math.abs(n) >= 1e4) return (n/1e4).toFixed(1) + "万";
     return Math.round(n).toLocaleString("en-US");
@@ -314,7 +343,9 @@ window.AssetCore = (function () {
 
   // ========== 暴露 API ==========
   return {
+    PRIVACY_LS_KEY: PRIVACY_LS_KEY,
     fmt: fmt, fmtK: fmtK, pct: pct,
+    isPrivacyMode: isPrivacyMode, setPrivacyMode: setPrivacyMode, maskedValue: maskedValue,
     parseDate: parseDate, isActive: isActive, activeMonthsInYear: activeMonthsInYear,
     makeToRMB: makeToRMB,
     inflate: inflate, deflate: deflate,

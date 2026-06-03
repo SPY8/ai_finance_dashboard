@@ -418,6 +418,7 @@
       <span title="当前快照汇率：1 HKD 折算为多少 RMB">HKD <b id="rate-hkd">—</b></span>
       <span class="sep"></span>
       <span class="meta-comment" id="snapshot-comment"></span>
+      <button class="btn" id="privacy-toggle" type="button">隐藏金额</button>
       <button class="btn primary" id="help-open" type="button">新手</button>
     </div>
   </header>
@@ -825,6 +826,28 @@
     });
     window.addEventListener("scroll", () => { if (activeEl) place(activeEl); }, { passive: true });
     window.addEventListener("resize", () => { if (activeEl) place(activeEl); }, { passive: true });
+  })();
+
+  (function () {
+    const C = window.AssetCore;
+    const btn = document.getElementById("privacy-toggle");
+    if (!C || !btn) return;
+
+    function syncPrivacyButton() {
+      const hidden = C.isPrivacyMode();
+      btn.textContent = hidden ? "显示金额" : "隐藏金额";
+      btn.classList.toggle("primary", hidden);
+      btn.setAttribute("aria-pressed", hidden ? "true" : "false");
+      btn.title = hidden ? "点击恢复金额显示" : "点击隐藏金额、股数和成本";
+    }
+
+    btn.addEventListener("click", () => {
+      C.setPrivacyMode(!C.isPrivacyMode());
+      syncPrivacyButton();
+      window.location.reload();
+    });
+
+    syncPrivacyButton();
   })();
 
   (function () {

@@ -3,15 +3,9 @@
 // 数据：data/liabilities.json + data/recurring.json + data/target.json (汇率)
 // =============================================================
 (function () {
+  const C = window.AssetCore;
   const $  = (s, r=document) => r.querySelector(s);
-  const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US");
-  const fmtK = n => {
-    if (n == null || isNaN(n)) return "—";
-    if (Math.abs(n) >= 1e8) return (n/1e8).toFixed(2) + "亿";
-    if (Math.abs(n) >= 1e4) return (n/1e4).toFixed(1) + "万";
-    return Math.round(n).toLocaleString("en-US");
-  };
-  const pct = (x, d=1) => (isNaN(x) ? "—" : (x*100).toFixed(d) + "%");
+  const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
   const today = new Date();
 
   Promise.all([

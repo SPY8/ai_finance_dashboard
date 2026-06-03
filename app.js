@@ -7,6 +7,7 @@
   const C = window.AssetCore;
   const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
   const pp = (x, d=1) => (x == null || isNaN(x)) ? "—" : (x*100).toFixed(d) + "pp";
+  const moneyText = (n, d=2) => C.isPrivacyMode() ? C.maskedValue() : (n || 0).toFixed(d);
   const $  = (s, r=document) => r.querySelector(s);
   const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
 
@@ -410,7 +411,7 @@ python3 -m http.server 8765</pre>
               const venue = s.venue ? `<span style="color:var(--text-2);font-size:11px">· ${s.venue}</span>` : "";
               const phaseBadge = phaseBadgeHTML(s.phase);
               const rawTitle = s.shares != null
-                ? `原币口径：${fmt(s.shares)} 股 × ${(s.price||0).toFixed(2)} ${s.ccy}（成本 ${(s.costPerShare||0).toFixed(2)}）`
+                ? `原币口径：${fmt(s.shares)} 股 × ${moneyText(s.price)} ${s.ccy}（成本 ${moneyText(s.costPerShare)}）`
                 : `原币口径：${fmt(s.raw)} ${s.ccy}`;
               const rmbTitle = s.shares != null && s.costRMB ? (() => {
                 const pl = s.rmb - s.costRMB;
@@ -423,7 +424,7 @@ python3 -m http.server 8765</pre>
                   <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${s.name}</span>${phaseBadge}${venue}</div>
                   <div class="sub-raw num" title="${rawTitle}">
                     ${s.shares != null
-                      ? `${fmt(s.shares)} × ${(s.price||0).toFixed(2)}`
+                      ? `${fmt(s.shares)} × ${moneyText(s.price)}`
                       : `${fmt(s.raw)} ${s.ccy}`}
                   </div>
                   <div class="sub-rmb num" title="${rmbTitle}">

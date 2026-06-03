@@ -3,15 +3,9 @@
 // 覆盖：港股通红利税、港股通资本利得、富途 HKD 交易税、美股股息预扣税
 // =============================================================
 (function () {
+  const C = window.AssetCore;
   const $  = (s, r=document) => r.querySelector(s);
-  const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US");
-  const fmtK = n => {
-    if (n == null || isNaN(n)) return "—";
-    if (Math.abs(n) >= 1e8) return (n/1e8).toFixed(2) + "亿";
-    if (Math.abs(n) >= 1e4) return (n/1e4).toFixed(1) + "万";
-    return Math.round(n).toLocaleString("en-US");
-  };
-  const pct = (x, d=1) => (isNaN(x) ? "—" : (x*100).toFixed(d) + "%");
+  const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
 
   // ========== 税务规则库 ==========
   const TaxRules = {

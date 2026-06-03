@@ -4,14 +4,9 @@
 // 设计：年度粒度，截图导入，抓大放小
 // =============================================================
 (function () {
+  const C = window.AssetCore;
   const $  = (s, r=document) => r.querySelector(s);
-  const fmt = n => n == null || isNaN(n) ? "—" : Math.round(n).toLocaleString("en-US");
-  const fmtK = n => {
-    if (n == null || isNaN(n)) return "—";
-    if (Math.abs(n) >= 1e4) return (n/1e4).toFixed(1) + "万";
-    return Math.round(n).toLocaleString("en-US");
-  };
-  const pct = (x, d=1) => (isNaN(x) ? "—" : (x*100).toFixed(d) + "%");
+  const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
 
   Promise.all([
     fetch("./data/transactions/index.json", {cache:"no-store"}).then(r => r.json()),
