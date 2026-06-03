@@ -254,6 +254,7 @@ python3 -m http.server 8765</pre>
   // 公式：CoastNumber = (annualMultiple × 年开销) / (1 + r)^years
   // 如果当前总盘 ≥ CoastNumber → 已 Coast：可以停止注资
   // 注：realReturns 是"扣除通胀的实际收益率"，所以 25× 年开销也是今天购买力，无需再调通胀
+  const FIRE_EXPANDED_LS_KEY = "afd_fire_expanded";
   function renderCoastCard(cur, target) {
     const root = $("#swr-card"); // 容器名沿用 #swr-card，避免改 HTML
     if (!root) return;
@@ -319,17 +320,25 @@ python3 -m http.server 8765</pre>
     const neutralFactor = Math.pow(1 + realReturns.neutral, years);
     const neutralCoast  = targetCorpus / neutralFactor;
     const overallDone   = total >= neutralCoast;
+    const fireExpanded  = !overallDone || (window.localStorage && localStorage.getItem(FIRE_EXPANDED_LS_KEY) === "1");
+    const summaryText   = overallDone
+      ? `中性档已达成，当前总盘约为门槛的 ${fmtPct(total / neutralCoast)}`
+      : `中性档仍差 ${fmtK(Math.max(0, neutralCoast - total))}，建议保留在完整视图里观察`;
 
     root.innerHTML = `
-      <div class="swr-card ${overallDone ? 'achieved' : ''}">
+      <div class="swr-card ${overallDone ? 'achieved' : ''} ${fireExpanded ? '' : 'compact'}">
         <div class="swr-head">
           <div class="title">
             <span class="icon">${overallDone ? '✅' : '🔥'}</span>
             Coast FIRE ${overallDone ? '· 已达成' : '· 进度'}
             <span style="color:var(--text-2);font-weight:400;font-size:var(--fs-xs);margin-left:8px">现在 ${currentAge} 岁 → ${retireAge} 岁停止打工，靠复利养到底</span>
           </div>
-          <div class="now">总盘 <b>${fmtK(total)}</b> · 年开销 <b>${fmtK(exp.total)}</b> · ${retireAge}岁需 <b>${fmtK(targetCorpus)}</b></div>
+          <div class="swr-actions">
+            <div class="now">总盘 <b>${fmtK(total)}</b> · 年开销 <b>${fmtK(exp.total)}</b> · ${retireAge}岁需 <b>${fmtK(targetCorpus)}</b></div>
+            ${overallDone ? `<button class="btn ghost" id="fire-toggle" type="button">${fireExpanded ? "收起评估" : "展开评估"}</button>` : ``}
+          </div>
         </div>
+        ${overallDone && !fireExpanded ? `<div class="swr-foot" style="border-top:none">${summaryText}</div>` : ``}
         <div class="swr-rows">${rowsHTML}</div>
         <div class="swr-bengen ${bengenDone?'done':''}">
           <span class="bengen-label">Full FIRE 兜底</span>
@@ -341,6 +350,21 @@ python3 -m http.server 8765</pre>
         </div>
       </div>
     `;
+
+    const toggle = $("#fire-toggle", root);
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        try {
+          if (window.localStorage) {
+            const next = fireExpanded ? "0" : "1";
+            localStorage.setItem(FIRE_EXPANDED_LS_KEY, next);
+          }
+        } catch (err) {
+          // Ignore storage failures; the current render still works.
+        }
+        renderCoastCard(cur, target);
+      });
+    }
   }
 
   // 启动加载
