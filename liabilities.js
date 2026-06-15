@@ -9,11 +9,11 @@
   const today = new Date();
 
   Promise.all([
-    fetch("./data/liabilities.json", {cache:"no-store"}).then(r => r.json()),
-    fetch("./data/recurring.json",   {cache:"no-store"}).then(r => r.json()),
-    fetch("./data/history.json",     {cache:"no-store"}).then(r => r.json()),
-    fetch("./data/target.json",      {cache:"no-store"}).then(r => r.json()),
-    fetch("./data/income_events.json", {cache:"no-store"}).then(r => r.json()).catch(() => ({events:[]})),
+    fetch(C.getDataPath("liabilities.json"), {cache:"no-store"}).then(r => r.json()),
+    fetch(C.getDataPath("recurring.json"),   {cache:"no-store"}).then(r => r.json()),
+    fetch(C.getDataPath("history.json"),     {cache:"no-store"}).then(r => r.json()),
+    fetch(C.getDataPath("target.json"),      {cache:"no-store"}).then(r => r.json()),
+    fetch(C.getDataPath("income_events.json"), {cache:"no-store"}).then(r => r.json()).catch(() => ({events:[]})),
   ]).then(([lia, rec, hist, target, incEv]) => {
     try {
     // 取最新汇率

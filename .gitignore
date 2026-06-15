@@ -1,8 +1,10 @@
 # macOS
 .DS_Store
 
-# 用户数据备份（防止真实数据误传）
-data/_backups/
+# 核心数据保护
+data/
+config.js
+screenshots/
 
 # Python
 __pycache__/
@@ -17,3 +19,8 @@ node_modules/
 .vscode/
 .idea/
 *.swp
+
+# 文档
+*.md
+!README.md
+!AGENTS.md

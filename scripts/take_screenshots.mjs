@@ -5,8 +5,8 @@
  * - 自动按 body 实际高度截全页
  *
  * 用法：
- *   node take_screenshots.mjs              # 默认 8766 端口、3x retina
- *   node take_screenshots.mjs 8766 2       # 指定端口和倍率
+ *   node take_screenshots.mjs              # 默认 8765 端口、3x retina
+ *   node take_screenshots.mjs 8765 2       # 指定端口和倍率
  *   SCALE=4 node take_screenshots.mjs      # 也可以用环境变量
  *
  * 依赖：先在 /tmp/puppeteer-test 装好 puppeteer-core
@@ -18,7 +18,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROJECT_DIR = resolve(__dirname, "..");
-const PORT = process.argv[2] || "8766";
+const PORT = process.argv[2] || "8765";
 const SCALE = Number(process.argv[3] || process.env.SCALE || 3);
 const VIEW_W = Number(process.env.VIEW_W || 1600);
 const VIEW_H = Number(process.env.VIEW_H || 900);

@@ -224,8 +224,8 @@
   // ========== 主渲染函数 ==========
   function renderTaxTab() {
     Promise.all([
-      fetch("./data/history.json", {cache:"no-store"}).then(r => r.json()),
-      fetch("./data/target.json", {cache:"no-store"}).then(r => r.json())
+      fetch(C.getDataPath("history.json"), {cache:"no-store"}).then(r => r.json()),
+      fetch(C.getDataPath("target.json"), {cache:"no-store"}).then(r => r.json())
     ]).then(([hist, target]) => {
       const snaps = (hist.snapshots || []).slice().sort((a,b) => a.date.localeCompare(b.date));
       if (snaps.length === 0) {

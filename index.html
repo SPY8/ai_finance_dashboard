@@ -4,6 +4,13 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>资产配置看板 · V2.1</title>
+<script src="config.js"></script>
+<script>
+  // 容错：如果 config.js 加载失败（或未创建），提供默认配置
+  if (typeof window.AFD_CONFIG === 'undefined') {
+    window.AFD_CONFIG = { dataDir: 'demo_data' };
+  }
+</script>
 <script>
   (function () {
     try {
@@ -122,7 +129,7 @@
   /* ============= TOP BAR ============= */
   header.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:14px;border-bottom:1px solid var(--line);padding-bottom:12px;flex-wrap:wrap}
   .title{display:flex;align-items:baseline;gap:10px}
-  .title h1{margin:0;font-size:var(--fs-h1);letter-spacing:.2px;font-weight:600}
+  .title h1{margin:0;font-size:var(--fs-h1);letter-spacing:.2px;font-weight:600;font-family:"Noto Serif SC","Source Han Serif SC",Georgia,serif}
   .title .v{color:var(--text-2);font-size:11px;font-family:"JetBrains Mono",monospace;border:1px solid var(--line-2);padding:1px 6px;border-radius:4px}
   .title p{margin:0;color:var(--text-2);font-size:var(--fs-xs)}
   .meta{display:flex;align-items:center;gap:14px;color:var(--text-2);font-size:var(--fs-xs);font-family:"JetBrains Mono",monospace}
@@ -504,6 +511,7 @@
     <button class="tab-btn" data-tab="liab">💸 负债与刚性</button>
     <button class="tab-btn" data-tab="cash">📈 现金流追踪</button>
     <button class="tab-btn" data-tab="tax">💰 税务计算</button>
+    <button class="tab-btn" data-tab="risk">🧭 风控与政策</button>
   </nav>
 
   <!-- =========== Tab 1: 资产配置 =========== -->
@@ -711,6 +719,12 @@
     <div id="tax-content"></div>
   </div>
 
+  <!-- =========== Tab 5: 风控与政策雷达 =========== -->
+  <div class="tab-pane" id="tab-risk">
+    <div class="kpis" id="risk-kpis"></div>
+    <div id="risk-content"></div>
+  </div>
+
   <footer>
     <code>data/target.json</code> · <code>history.json</code> · <code>liabilities.json</code> · <code>recurring.json</code> · <code>income_events.json</code> · <code>transactions/</code>
     　|　Warm Editorial · JetBrains Mono · 小龙猫 @ <code>memory/areas/life_planning/asset_dashboard/</code>
@@ -770,6 +784,7 @@
 <script src="./cashflow.js"></script>
 <script src="./tax.js"></script>
 <script src="./target.js"></script>
+<script src="./risk_policy.js"></script>
 <script>
   // Tab 切换 + URL hash 路由（方便外部用 #liab / #cash / #tax 直链跳转或截图）
   function activateTab(tab) {
@@ -782,6 +797,10 @@
     // 切换到目标配置 Tab 时自动渲染
     if (tab === "target" && typeof renderTargetTab === "function") {
       renderTargetTab();
+    }
+    // 切换到风控与政策 Tab 时自动渲染
+    if (tab === "risk" && typeof renderRiskPolicyTab === "function") {
+      renderRiskPolicyTab();
     }
   }
   document.querySelectorAll(".tab-btn").forEach(btn => {

@@ -29,6 +29,14 @@ window.AssetCore = (function () {
     return PRIVACY_MASK;
   }
 
+  // ---- 核心工具函数 ----
+
+  // 动态获取数据路径 (根据 config.js 配置，如果没有则回退到 demo_data)
+  function getDataPath(filename) {
+    const dir = (window.AFD_CONFIG && window.AFD_CONFIG.dataDir) ? window.AFD_CONFIG.dataDir : 'demo_data';
+    return `./${dir}/${filename}`;
+  }
+
   // ========== 格式化 ==========
   function fmt(n)  {
     if (n == null || isNaN(n)) return "—";
@@ -354,5 +362,6 @@ window.AssetCore = (function () {
     healthCheck: healthCheck,
     reconcile: reconcile,
     runAssertions: runAssertions,
+    getDataPath: getDataPath,
   };
 })();

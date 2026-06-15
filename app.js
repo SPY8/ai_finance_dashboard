@@ -13,8 +13,8 @@
 
   // ---- 0. 加载数据 ----
   Promise.all([
-    fetch("./data/target.json", {cache:"no-store"}).then(r => r.json()),
-    fetch("./data/history.json",{cache:"no-store"}).then(r => r.json()),
+    fetch(C.getDataPath("target.json"), {cache:"no-store"}).then(r => r.json()),
+    fetch(C.getDataPath("history.json"),{cache:"no-store"}).then(r => r.json()),
   ]).then(([target, history]) => {
     const snaps = (history.snapshots || []).slice().sort((a,b) => a.date.localeCompare(b.date));
     if (snaps.length === 0) {
@@ -199,7 +199,7 @@ python3 -m http.server 8765</pre>
   let _recurringCache = null;
   function loadRecurringOnce() {
     if (_recurringCache) return Promise.resolve(_recurringCache);
-    return fetch("./data/recurring.json", {cache:"no-store"}).then(r => r.json()).then(d => _recurringCache = d).catch(() => null);
+    return fetch(C.getDataPath("recurring.json"), {cache:"no-store"}).then(r => r.json()).then(d => _recurringCache = d).catch(() => null);
   }
   function computeAnnualExpenseEstimate(target) {
     if (!_recurringCache) return 0;

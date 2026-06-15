@@ -42,8 +42,8 @@
   function loadData() {
     if (targetData && historyData) return Promise.resolve({ target: targetData, history: historyData });
     return Promise.all([
-      fetch("./data/target.json", { cache: "no-store" }).then(r => r.json()),
-      fetch("./data/history.json", { cache: "no-store" }).then(r => r.json()).catch(() => ({ snapshots: [] }))
+      fetch(window.AssetCore.getDataPath("target.json"), { cache: "no-store" }).then(r => r.json()),
+      fetch(window.AssetCore.getDataPath("history.json"), { cache: "no-store" }).then(r => r.json()).catch(() => ({ snapshots: [] }))
     ]).then(([target, history]) => {
       targetData = target;
       historyData = history;

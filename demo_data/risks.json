@@ -1,0 +1,130 @@
+{
+  "dimensions": [
+    { "id": "liquidity", "name": "流动性与规则", "color": "var(--danger)" },
+    { "id": "macro", "name": "宏观大气候", "color": "var(--warn)" },
+    { "id": "investment", "name": "投资实操", "color": "var(--accent)" },
+    { "id": "lifecycle", "name": "生命周期", "color": "var(--hkd)" }
+  ],
+  "risks": [
+    {
+      "id": "r1",
+      "dimension": "liquidity",
+      "title": "卖不掉的“纸面富贵”",
+      "description": "房子变不成活钱，但房贷是刚性现金流支出。",
+      "keyword": "房住不炒",
+      "status": "active"
+    },
+    {
+      "id": "r2",
+      "dimension": "liquidity",
+      "title": "“绝对安全”里的温水煮青蛙",
+      "description": "存款利率下行，全现金防守导致购买力隐性蒸发。",
+      "keyword": "降息促实体",
+      "status": "active"
+    },
+    {
+      "id": "r3",
+      "dimension": "liquidity",
+      "title": "资产暴露在“单一市场”里",
+      "description": "100% 绑定单一货币，缺乏跨币种对冲能力。",
+      "keyword": "双循环",
+      "status": "active"
+    },
+    {
+      "id": "r4",
+      "dimension": "macro",
+      "title": "低估了“输入性通胀”的刺客",
+      "description": "地缘冲突推高大宗商品，缺乏抗通胀硬通货（如黄金）导致购买力滑落。",
+      "keyword": "全球供应链重塑",
+      "status": "active"
+    },
+    {
+      "id": "r5",
+      "dimension": "macro",
+      "title": "全家命运绑在同一辆卡车上",
+      "description": "夫妻同在传统行业、房产与存款挂钩同一城市经济盘，面临三杀风险。",
+      "keyword": "新旧动能转换",
+      "status": "active"
+    },
+    {
+      "id": "r6",
+      "dimension": "investment",
+      "title": "好公司买在了“烂价格”",
+      "description": "情绪狂热时接盘高位泡沫（如AI科技），面临均值回归杀跌。",
+      "keyword": "新质生产力",
+      "status": "active"
+    },
+    {
+      "id": "r7",
+      "dimension": "investment",
+      "title": "极端行情下的无差别流动性绞杀",
+      "description": "真正的恐慌爆发时，连黄金和国债都会被机构抛售套现，缺乏宏观常识容易错杀割肉。",
+      "keyword": "伪避险陷阱",
+      "status": "active"
+    },
+    {
+      "id": "r8",
+      "dimension": "investment",
+      "title": "图高息被降维收割",
+      "description": "被虚假私募、保本保息的高端理财诈骗，看中利息却损失本金。",
+      "keyword": "金融强监管",
+      "status": "active"
+    },
+    {
+      "id": "r9",
+      "dimension": "lifecycle",
+      "title": "婚变与债务连带瞬间抽干底盘",
+      "description": "缺乏法律资产隔离意识，配偶违规负债或诉状冻结理财。",
+      "keyword": "法律防火墙",
+      "status": "active"
+    },
+    {
+      "id": "r10",
+      "dimension": "lifecycle",
+      "title": "低估“长寿”带来的击穿风险",
+      "description": "医疗看护黑洞庞大，缺乏持续被动现金流（如股息），长寿拖垮资产负债表。",
+      "keyword": "银发经济",
+      "status": "active"
+    },
+    {
+      "id": "r11",
+      "dimension": "investment",
+      "title": "汇差吞噬利差",
+      "description": "只看名义高息，忽视双向换汇点差与汇率波动，最终被反向收割。",
+      "keyword": "汇率对赌",
+      "status": "active"
+    },
+    {
+      "id": "r12",
+      "dimension": "investment",
+      "title": "单一巨头黑天鹅与系统性监管",
+      "description": "重仓单一科技巨头，一旦遭遇反垄断、版号停发或管理层变动，财富底盘将被瞬间击穿。",
+      "keyword": "集中度过高",
+      "status": "active"
+    },
+    {
+      "id": "r13",
+      "dimension": "investment",
+      "title": "底层资产信用下沉",
+      "description": "看似高息安全的固收/货币基金，底层其实配置了低评级城投债或地产债，在极端情况下可能面临流动性危机甚至违约。",
+      "keyword": "信用黑盒",
+      "status": "active"
+    },
+    {
+      "id": "r14",
+      "dimension": "investment",
+      "title": "数字资产极高波动与监管归零",
+      "description": "虽然能对冲法币超发，但面临极高的历史波动率（动辄 50% 回撤），以及各主权国家可能的严厉打击甚至封杀。",
+      "keyword": "极高波动",
+      "status": "active"
+    },
+    {
+      "id": "r15",
+      "dimension": "macro",
+      "title": "长久期利率反噬（美债）",
+      "description": "博弈降息购买长端债券（如TLT），若通胀二次反弹导致高息长期维持，债券本金将遭受巨大损失。",
+      "keyword": "久期风险",
+      "status": "active"
+    }
+  ]
+}
