@@ -6,20 +6,20 @@
 <title>资产配置看板 · V2.1</title>
 <script src="config.js"></script>
 <script>
-  // 容错：如果 config.js 加载失败（或未创建），提供默认配置
-  if (typeof window.AFD_CONFIG === 'undefined') {
-    window.AFD_CONFIG = { dataDir: 'demo_data' };
-  }
+  if (typeof window.AFD_CONFIG === 'undefined') window.AFD_CONFIG = { dataDir: 'demo_data' };
+  try {
+    const storedDataDir = window.localStorage && window.localStorage.getItem("afd_data_dir");
+    if (storedDataDir) window.AFD_CONFIG.dataDir = storedDataDir;
+  } catch (err) {}
 </script>
 <script>
   (function () {
     try {
       const stored = window.localStorage && window.localStorage.getItem("afd_theme");
-      const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
-      const theme = stored || (prefersLight ? "light" : "dark");
+      const theme = stored || "light";
       document.documentElement.setAttribute("data-theme", theme);
     } catch (err) {
-      document.documentElement.setAttribute("data-theme", "dark");
+      document.documentElement.setAttribute("data-theme", "light");
     }
   })();
 </script>
@@ -156,6 +156,7 @@
   h2{font-size:var(--fs-h2);letter-spacing:.3px;margin:0 0 8px;color:var(--text-1);font-weight:500;text-transform:uppercase;display:flex;align-items:center;gap:8px}
   h2 .hint{margin-left:auto;font-size:var(--fs-xs);color:var(--text-3);font-weight:400;letter-spacing:0;text-transform:none}
   h2 code{background:var(--bg-2);padding:1px 5px;border-radius:3px;color:var(--text-2);font-size:10px}
+  .sec-toggle{padding:3px 8px;font-size:11px;line-height:1.2}
 
   /* ============= HEALTH CHECK STRIP ============= */
   .hc-strip{display:flex;flex-direction:column;gap:1px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:10px}
@@ -497,9 +498,9 @@
       <span class="sep"></span>
       <span class="meta-comment" id="snapshot-comment"></span>
       <div class="meta-actions">
+        <select id="data-toggle" class="date-picker" title="切换数据源：本地私有 data/ 或公开 demo_data/"></select>
         <button class="btn" id="theme-toggle" type="button">深色</button>
         <button class="btn" id="privacy-toggle" type="button">隐藏金额</button>
-        <button class="btn" id="beginner-toggle" type="button">完整视图</button>
         <button class="btn ghost" id="help-open" type="button">导览</button>
       </div>
     </div>
@@ -517,31 +518,6 @@
   <!-- =========== Tab 1: 资产配置 =========== -->
   <div class="tab-pane active" id="tab-assets">
     <div id="jump-kpis"></div>
-    <div class="lia-card" id="beginner-strip" style="display:none;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
-        <div>
-          <div style="font-size:12px;color:var(--text-2);margin-bottom:6px">当前视图：简洁视图</div>
-          <div style="font-size:13px;color:var(--text-1);line-height:1.65">
-            保留 <b>健康检查 / KPI / 模块画像 / 池分离 / 币种分布</b>，适合日常一眼看配置。
-            <br/>先选 <b>快照</b> → 看 <b>模块</b> 是否超阈值 → 再看子项右侧的 <b>实际占比</b> 与 <b>Δ(pp)</b>。
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn" id="beginner-off" type="button">切回完整</button>
-        </div>
-      </div>
-    </div>
-    <div class="lia-card" id="advanced-strip" style="display:none;margin-bottom:10px">
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
-        <div style="color:var(--text-2);font-size:12px;line-height:1.6">
-          已折叠：<b style="color:var(--text-1)">FIRE 评估 / 告警明细 / 趋势 / 更新历史 / 长期增长 / 里程碑</b>。
-          需要复盘或调仓时，再展开完整分析。
-        </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <button class="btn" id="advanced-toggle" type="button">查看完整分析</button>
-        </div>
-      </div>
-    </div>
     <div id="health-check"></div>
     <div class="kpis" id="kpis"></div>
     <div class="kpis kpis-secondary" id="kpis-secondary"></div>
@@ -756,11 +732,6 @@
       <button class="btn ghost" data-jump="#jump-mods" type="button">跳到 模块</button>
       <button class="btn ghost" data-jump="#jump-pools" type="button">跳到 池分离</button>
     </div>
-    <h3>两种视图</h3>
-    <ul>
-      <li><b>简洁视图</b>：只保留健康检查、KPI、模块画像、池分离、币种分布，适合日常快速查看。</li>
-      <li><b>完整视图</b>：额外显示 FIRE 评估、告警明细、趋势、更新历史、长期增长、里程碑，适合复盘和调仓。</li>
-    </ul>
     <h3>交互</h3>
     <ul>
       <li>悬停任意数字/表头：显示口径说明。</li>
@@ -768,8 +739,7 @@
     </ul>
   </div>
   <div class="modal-foot">
-    <button class="btn primary" id="beginner-on" type="button">切到简洁视图</button>
-    <button class="btn" id="beginner-off-2" type="button">切到完整视图</button>
+    <button class="btn primary" id="help-close-2" type="button">关闭</button>
   </div>
 </div>
 <div class="tt-bubble" id="tt" role="tooltip" aria-hidden="true">
@@ -995,67 +965,20 @@
     const modal = document.getElementById("help-modal");
     const openBtn = document.getElementById("help-open");
     const closeBtn = document.getElementById("help-close");
-    const beginnerToggle = document.getElementById("beginner-toggle");
-    const beginnerStrip = document.getElementById("beginner-strip");
-    const advancedStrip = document.getElementById("advanced-strip");
-    const advancedAssets = document.getElementById("advanced-assets");
-    const advancedToggle = document.getElementById("advanced-toggle");
-    const beginnerOn = document.getElementById("beginner-on");
-    const beginnerOff = document.getElementById("beginner-off");
-    const beginnerOff2 = document.getElementById("beginner-off-2");
-    const LS_KEY = "afd_beginner";
-    const LS_ADV = "afd_advanced_visible";
+    const closeBtn2 = document.getElementById("help-close-2");
 
-    function getBeginner() {
-      return localStorage.getItem(LS_KEY) === "1";
-    }
-    function getAdvancedVisible() {
-      return localStorage.getItem(LS_ADV) === "1";
-    }
-    function setAdvancedVisible(v) {
-      localStorage.setItem(LS_ADV, v ? "1" : "0");
-      syncViewUI();
-    }
-    function syncViewUI() {
-      const beginner = getBeginner();
-      const advVisible = getAdvancedVisible();
-      if (beginnerStrip) beginnerStrip.style.display = beginner ? "" : "none";
-      if (advancedStrip) advancedStrip.style.display = beginner ? "" : "none";
-      if (advancedAssets) advancedAssets.style.display = beginner && !advVisible ? "none" : "";
-      if (advancedToggle) advancedToggle.textContent = beginner && !advVisible ? "查看完整分析" : "收起完整分析";
-      if (beginnerToggle) {
-        beginnerToggle.textContent = beginner ? "简洁视图" : "完整视图";
-        beginnerToggle.classList.toggle("primary", beginner);
-        beginnerToggle.setAttribute("aria-pressed", beginner ? "true" : "false");
-        beginnerToggle.title = beginner ? "当前为简洁视图，点击切到完整视图" : "当前为完整视图，点击切到简洁视图";
-      }
-    }
-    function setBeginner(on) {
-      const v = !!on;
-      localStorage.setItem(LS_KEY, v ? "1" : "0");
-      setAdvancedVisible(v ? false : true);
-    }
-    function open() {
+    if (openBtn) openBtn.addEventListener("click", () => {
       mask.classList.add("show");
       modal.classList.add("show");
-    }
+    });
+
     function close() {
       mask.classList.remove("show");
       modal.classList.remove("show");
     }
-    openBtn.addEventListener("click", open);
-    closeBtn.addEventListener("click", close);
-    mask.addEventListener("click", close);
-    if (beginnerToggle) beginnerToggle.addEventListener("click", () => setBeginner(!getBeginner()));
-    beginnerOn.addEventListener("click", () => { setBeginner(true); close(); });
-    beginnerOff.addEventListener("click", () => setBeginner(false));
-    beginnerOff2.addEventListener("click", () => { setBeginner(false); close(); });
-    if (advancedToggle) {
-      advancedToggle.addEventListener("click", () => {
-        const visible = advancedAssets && advancedAssets.style.display !== "none";
-        setAdvancedVisible(!visible);
-      });
-    }
+    if (closeBtn) closeBtn.addEventListener("click", close);
+    if (closeBtn2) closeBtn2.addEventListener("click", close);
+    if (mask) mask.addEventListener("click", close);
 
     modal.addEventListener("click", (e) => {
       const btn = e.target && e.target.closest ? e.target.closest("[data-jump]") : null;
@@ -1070,9 +993,74 @@
         if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     });
+  })();
 
-    if (localStorage.getItem(LS_ADV) == null) localStorage.setItem(LS_ADV, getBeginner() ? "0" : "1");
-    syncViewUI();
+  (function () {
+    const sel = document.getElementById("data-toggle");
+    if (!sel) return;
+    const LS_KEY = "afd_data_dir";
+    const current = (window.AFD_CONFIG && window.AFD_CONFIG.dataDir) ? window.AFD_CONFIG.dataDir : "demo_data";
+    sel.innerHTML = `
+      <option value="data">数据：私有</option>
+      <option value="demo_data">数据：DEMO</option>
+    `;
+    sel.value = current === "demo_data" ? "demo_data" : "data";
+    sel.addEventListener("change", () => {
+      const next = sel.value;
+      try { window.localStorage && window.localStorage.setItem(LS_KEY, next); } catch (err) {}
+      if (!window.AFD_CONFIG) window.AFD_CONFIG = { dataDir: next };
+      window.AFD_CONFIG.dataDir = next;
+      window.location.reload();
+    });
+  })();
+
+  (function () {
+    const LS_PREFIX = "afd_section_collapsed:";
+    function normKey(s) {
+      return String(s || "").trim().replace(/\s+/g, " ").slice(0, 80);
+    }
+    function getTitleKey(h2) {
+      const clone = h2.cloneNode(true);
+      if (clone.querySelectorAll) clone.querySelectorAll(".hint").forEach(n => n.remove());
+      return normKey(clone.textContent);
+    }
+    function wrapSectionBody(section, h2) {
+      const existing = section.querySelector(":scope > .sec-body");
+      if (existing) return existing;
+      const body = document.createElement("div");
+      body.className = "sec-body";
+      const kids = Array.from(section.children);
+      const idx = kids.indexOf(h2);
+      for (let i = kids.length - 1; i > idx; i--) body.insertBefore(kids[i], body.firstChild);
+      section.insertBefore(body, h2.nextSibling);
+      return body;
+    }
+    function apply(section) {
+      const h2 = section.querySelector(":scope > h2");
+      if (!h2) return;
+      const keyBase = section.getAttribute("data-collapse-key") || getTitleKey(h2);
+      const lsKey = LS_PREFIX + normKey(keyBase);
+      const body = wrapSectionBody(section, h2);
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn ghost sec-toggle";
+      btn.setAttribute("aria-label", "折叠/展开");
+      const hint = h2.querySelector(".hint");
+      if (hint) h2.insertBefore(btn, hint);
+      else h2.appendChild(btn);
+
+      function setCollapsed(collapsed) {
+        body.style.display = collapsed ? "none" : "";
+        btn.textContent = collapsed ? "展开" : "折叠";
+        btn.classList.toggle("primary", !collapsed);
+        try { window.localStorage && window.localStorage.setItem(lsKey, collapsed ? "1" : "0"); } catch (err) {}
+      }
+      let initCollapsed = false;
+      try { initCollapsed = window.localStorage && window.localStorage.getItem(lsKey) === "1"; } catch (err) {}
+      setCollapsed(initCollapsed);
+      btn.addEventListener("click", () => setCollapsed(body.style.display !== "none"));
+    }
+    document.querySelectorAll("section").forEach(apply);
   })();
 </script>
 </body>
