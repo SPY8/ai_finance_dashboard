@@ -101,10 +101,11 @@
       "targetPct": 0.50,
       "thresholdPct": 0.05,
       "purpose": "现金流基石：自住/可收租房产 + 红利 ETF",
-      "rationale": "房产 A 36% + 红利低波 14%。被动现金流机器的发动机。",
+      "rationale": "房产 A 36% + 红利低波（515450/563020 1:1）14%。被动现金流机器的发动机。",
       "subs": [
         { "key": "qianhai_property",   "name": "房产 A（出租）",       "ccy": "RMB", "venue": "不动产", "subTargetPct": 0.36, "subThresholdPct": 0.05,  "phase": "active",  "expectedReturn": { "conservative": 0.012, "neutral": 0.020, "optimistic": 0.030, "yieldOnly": true }, "note": "长期持有出租。如果你有自住房，加一条 home_property，把 yieldOnly 改成 false" },
-        { "key": "etf_512890",         "name": "红利低波 512890",      "ccy": "RMB", "venue": "A 股",  "subTargetPct": 0.14, "subThresholdPct": 0.03, "phase": "active",  "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.090 } }
+        { "key": "etf_515450",         "name": "大盘红利低波 515450",  "ccy": "RMB", "venue": "A 股",  "subTargetPct": 0.07, "subThresholdPct": 0.02, "phase": "active",  "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.090 }, "note": "防御力之王：大盘过滤更稳健" },
+        { "key": "etf_563020",         "name": "红利低波 563020（低费率）","ccy": "RMB", "venue": "A 股","subTargetPct": 0.07, "subThresholdPct": 0.02, "phase": "active",  "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.090 }, "note": "摩擦成本之王：同指数更低费率" }
       ]
     },
     {

@@ -16,10 +16,11 @@
   (function () {
     try {
       const stored = window.localStorage && window.localStorage.getItem("afd_theme");
-      const theme = stored || "light";
+      const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+      const theme = stored || (prefersLight ? "light" : "dark");
       document.documentElement.setAttribute("data-theme", theme);
     } catch (err) {
-      document.documentElement.setAttribute("data-theme", "light");
+      document.documentElement.setAttribute("data-theme", "dark");
     }
   })();
 </script>
@@ -144,10 +145,16 @@
   .date-picker:hover{border-color:var(--line-2)}
 
   /* ============= TABS ============= */
-  .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+  .tabs-wrap{position:sticky;top:0;z-index:1000;background:var(--bg-0);background-image:var(--bg-glow)}
+  .tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:0;overflow-x:auto}
   .tab-btn{background:transparent;border:none;color:var(--text-2);font:inherit;font-size:var(--fs-body);padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;transition:color .12s, border-color .12s;white-space:nowrap;font-weight:500}
   .tab-btn:hover{color:var(--text-0)}
   .tab-btn.active{color:var(--text-0);border-bottom-color:var(--accent)}
+  .subtabs{display:none;gap:6px;padding:8px 8px 10px;border-bottom:1px solid var(--line);overflow-x:auto}
+  .subtabs.show{display:flex}
+  .subtab-btn{background:var(--bg-1);border:1px solid var(--line);border-radius:999px;color:var(--text-2);font:inherit;font-size:12px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:border-color .12s,color .12s}
+  .subtab-btn:hover{border-color:var(--line-2);color:var(--text-0)}
+  .subtab-btn.active{border-color:var(--accent);color:var(--text-0)}
   .tab-pane{display:none}
   .tab-pane.active{display:block}
 
@@ -506,21 +513,31 @@
     </div>
   </header>
 
-  <nav class="tabs" role="tablist">
-    <button class="tab-btn active" data-tab="assets">📊 资产配置</button>
-    <button class="tab-btn" data-tab="target">🎯 目标配置</button>
-    <button class="tab-btn" data-tab="liab">💸 负债与刚性</button>
-    <button class="tab-btn" data-tab="cash">📈 现金流追踪</button>
-    <button class="tab-btn" data-tab="tax">💰 税务计算</button>
-    <button class="tab-btn" data-tab="risk">🧭 风控与政策</button>
-  </nav>
+  <div class="tabs-wrap">
+    <nav class="tabs" role="tablist">
+      <button class="tab-btn active" data-tab="assets">📊 资产配置</button>
+      <button class="tab-btn" data-tab="target">🎯 目标配置</button>
+      <button class="tab-btn" data-tab="liab">💸 负债与刚性</button>
+      <button class="tab-btn" data-tab="cash">📈 现金流追踪</button>
+      <button class="tab-btn" data-tab="tax">💰 税务计算</button>
+      <button class="tab-btn" data-tab="risk">🧭 风控与政策</button>
+    </nav>
+    <nav class="subtabs" id="subtabs" aria-label="页面结构导航"></nav>
+  </div>
 
   <!-- =========== Tab 1: 资产配置 =========== -->
   <div class="tab-pane active" id="tab-assets">
     <div id="jump-kpis"></div>
-    <div id="health-check"></div>
-    <div class="kpis" id="kpis"></div>
-    <div class="kpis kpis-secondary" id="kpis-secondary"></div>
+    <section>
+      <h2>健康检查</h2>
+      <div id="health-check"></div>
+    </section>
+
+    <section>
+      <h2>KPI</h2>
+      <div class="kpis" id="kpis"></div>
+      <div class="kpis kpis-secondary" id="kpis-secondary"></div>
+    </section>
 
     <section>
       <div id="jump-mods"></div>
@@ -550,8 +567,14 @@
       </div>
     </section>
 
-    <div id="tencent-ladder"></div>
-    <div id="reconcile-bar"></div>
+    <section>
+      <h2>腾讯减仓阶梯</h2>
+      <div id="tencent-ladder"></div>
+    </section>
+    <section>
+      <h2>对账与回报拆解</h2>
+      <div id="reconcile-bar"></div>
+    </section>
 
     <div id="advanced-assets">
       <section>
@@ -609,7 +632,10 @@
 
   <!-- =========== Tab 2: 负债与刚性 =========== -->
   <div class="tab-pane" id="tab-liab">
-    <div class="kpis" id="liab-kpis"></div>
+    <section>
+      <h2>概览</h2>
+      <div class="kpis" id="liab-kpis"></div>
+    </section>
 
     <section>
       <h2>负债清单</h2>
@@ -644,7 +670,10 @@
       <div style="color:var(--text-3);font-size:var(--fs-xs)"><code style="background:var(--bg-2);padding:1px 5px;border-radius:3px">data/transactions/yearly/YYYY.json</code></div>
     </div>
 
-    <div class="kpis" id="cash-kpis"></div>
+    <section>
+      <h2>概览</h2>
+      <div class="kpis" id="cash-kpis"></div>
+    </section>
 
     <section>
       <h2>支出大类分布<span class="hint">本年累计</span></h2>
@@ -685,20 +714,38 @@
 
   <!-- =========== Tab 2: 目标配置 =========== -->
   <div class="tab-pane" id="tab-target">
-    <div class="kpis" id="target-kpis"></div>
-    <div id="target-content"></div>
+    <section>
+      <h2>概览</h2>
+      <div class="kpis" id="target-kpis"></div>
+    </section>
+    <section>
+      <h2>模块与子项</h2>
+      <div id="target-content"></div>
+    </section>
   </div>
 
   <!-- =========== Tab 4: 税务计算 =========== -->
   <div class="tab-pane" id="tab-tax">
-    <div class="kpis" id="tax-kpis"></div>
-    <div id="tax-content"></div>
+    <section>
+      <h2>概览</h2>
+      <div class="kpis" id="tax-kpis"></div>
+    </section>
+    <section>
+      <h2>计算结果</h2>
+      <div id="tax-content"></div>
+    </section>
   </div>
 
   <!-- =========== Tab 5: 风控与政策雷达 =========== -->
   <div class="tab-pane" id="tab-risk">
-    <div class="kpis" id="risk-kpis"></div>
-    <div id="risk-content"></div>
+    <section>
+      <h2>概览</h2>
+      <div class="kpis" id="risk-kpis"></div>
+    </section>
+    <section>
+      <h2>工具与风险图谱</h2>
+      <div id="risk-content"></div>
+    </section>
   </div>
 
   <footer>
@@ -757,6 +804,87 @@
 <script src="./risk_policy.js"></script>
 <script>
   // Tab 切换 + URL hash 路由（方便外部用 #liab / #cash / #tax 直链跳转或截图）
+  const subtabsEl = document.getElementById("subtabs");
+  const tabsWrapEl = document.querySelector(".tabs-wrap");
+  let _activeTab = null;
+  let _subtabSections = [];
+  let _subtabButtons = [];
+  let _subtabRaf = 0;
+  let _subtabObserver = null;
+  let _subtabObsTimer = 0;
+
+  function getH2Title(h2) {
+    if (!h2) return "";
+    const clone = h2.cloneNode(true);
+    if (clone.querySelectorAll) clone.querySelectorAll(".hint").forEach(n => n.remove());
+    return (clone.textContent || "").trim();
+  }
+  function ensureSectionIds(pane, tab) {
+    const sections = Array.from(pane.querySelectorAll("section"));
+    sections.forEach((sec, i) => {
+      if (!sec.id) sec.id = `sec-${tab}-${i+1}`;
+    });
+    return sections;
+  }
+  function getScrollOffset() {
+    return (tabsWrapEl ? tabsWrapEl.offsetHeight : 0) + 10;
+  }
+  function scrollToId(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const top = window.scrollY + r.top - getScrollOffset();
+    window.scrollTo({ top, behavior: "smooth" });
+  }
+  function syncSubtabActive() {
+    if (!_activeTab || !_subtabSections.length || !_subtabButtons.length) return;
+    const offset = getScrollOffset();
+    let activeId = _subtabSections[0].id;
+    for (let i = 0; i < _subtabSections.length; i++) {
+      const sec = _subtabSections[i];
+      const top = sec.getBoundingClientRect().top - offset;
+      if (top <= 8) activeId = sec.id;
+    }
+    _subtabButtons.forEach(btn => btn.classList.toggle("active", btn.dataset.target === activeId));
+  }
+  function buildSubtabs(tab) {
+    if (!subtabsEl) return;
+    const pane = document.getElementById("tab-" + tab);
+    if (!pane) { subtabsEl.classList.remove("show"); subtabsEl.innerHTML = ""; return; }
+
+    const sections = ensureSectionIds(pane, tab).filter(sec => sec.querySelector("h2"));
+    if (sections.length <= 1) { subtabsEl.classList.remove("show"); subtabsEl.innerHTML = ""; _subtabSections = []; _subtabButtons = []; return; }
+
+    _activeTab = tab;
+    _subtabSections = sections;
+    subtabsEl.innerHTML = sections.map(sec => {
+      const h2 = sec.querySelector("h2");
+      const title = getH2Title(h2);
+      return `<button class="subtab-btn" type="button" data-target="${sec.id}">${title || "—"}</button>`;
+    }).join("");
+    subtabsEl.classList.add("show");
+    _subtabButtons = Array.from(subtabsEl.querySelectorAll(".subtab-btn"));
+    _subtabButtons.forEach(btn => {
+      btn.addEventListener("click", () => scrollToId(btn.dataset.target));
+    });
+    syncSubtabActive();
+
+    if (_subtabObserver) _subtabObserver.disconnect();
+    _subtabObserver = new MutationObserver(() => {
+      if (_subtabObsTimer) clearTimeout(_subtabObsTimer);
+      _subtabObsTimer = setTimeout(() => buildSubtabs(tab), 60);
+    });
+    _subtabObserver.observe(pane, { childList: true, subtree: true });
+  }
+
+  window.addEventListener("scroll", () => {
+    if (_subtabRaf) cancelAnimationFrame(_subtabRaf);
+    _subtabRaf = requestAnimationFrame(syncSubtabActive);
+  }, { passive: true });
+  window.addEventListener("resize", () => {
+    if (_activeTab) buildSubtabs(_activeTab);
+  }, { passive: true });
+
   function activateTab(tab) {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
     document.querySelectorAll(".tab-pane").forEach(p => p.classList.toggle("active", p.id === "tab-" + tab));
@@ -772,6 +900,8 @@
     if (tab === "risk" && typeof renderRiskPolicyTab === "function") {
       renderRiskPolicyTab();
     }
+    buildSubtabs(tab);
+    setTimeout(() => buildSubtabs(tab), 350);
   }
   document.querySelectorAll(".tab-btn").forEach(btn => {
     btn.addEventListener("click", () => {

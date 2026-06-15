@@ -70,19 +70,24 @@ def main():
         ("tencent_futu", "HKD", "腾讯（富途/中银/招商共用价）"),
         ("hstech", "HKD", "恒生科技 03032"),
         ("hsi_dividend_efund", "HKD", "易方达亚太高股息 03483"),
-        ("etf_512890", "RMB", "红利低波 512890"),
+        ("etf_515450", "RMB", "大盘红利低波 515450"),
+        ("etf_563020", "RMB", "红利低波（低费率）563020"),
         ("high_div_bluechip", "RMB", "长江电力 600900"),
     ]
 
     if skip:
         for k, ccy, name in keys_to_ask:
             last_p = last_prices.get(k, {}).get("price")
+            if last_p is None and k == "etf_563020":
+                last_p = last_prices.get("etf_512890", {}).get("price")
             snap["prices"][k] = {"ccy": ccy, "price": last_p}
         print("⏭  跳过提问；价格沿用上次。请编辑 prices/holdings 后写入 history.json。\n")
     else:
         print("📋 输入当前价（直接回车 = 沿用上次价格）：")
         for k, ccy, name in keys_to_ask:
             last_p = last_prices.get(k, {}).get("price")
+            if last_p is None and k == "etf_563020":
+                last_p = last_prices.get("etf_512890", {}).get("price")
             v = prompt(f"  {name} ({ccy})", str(last_p) if last_p else None)
             try:
                 snap["prices"][k] = {"ccy": ccy, "price": float(v) if v else last_p}

@@ -101,7 +101,22 @@ window.AssetCore = (function () {
     let total = 0;
     let totalCost = 0;
     const ccyTotals = { RMB:0, USD:0, HKD:0 };
+    const KEY_ALIASES = { etf_563020: ["etf_512890"] };
     const targetKeys = new Set(target.modules.flatMap(m => m.subs.map(s => s.key)));
+    Object.values(KEY_ALIASES).forEach(function (arr) {
+      (arr || []).forEach(function (k) { targetKeys.add(k); });
+    });
+
+    function resolveKey(k, obj) {
+      if (obj && obj[k] != null) return k;
+      const aliases = KEY_ALIASES[k];
+      if (!aliases) return k;
+      for (let i = 0; i < aliases.length; i++) {
+        const ak = aliases[i];
+        if (obj && obj[ak] != null) return ak;
+      }
+      return k;
+    }
 
     function valueOf(h, sub) {
       if (!h) return null;
@@ -128,8 +143,12 @@ window.AssetCore = (function () {
 
     const modules = target.modules.map(m => {
       const subs = m.subs.map(sub => {
-        const h = (snap.holdings || {})[sub.key];
-        const v = valueOf(h, sub);
+        const holdings = snap.holdings || {};
+        const pricesObj = prices || {};
+        const hk = resolveKey(sub.key, holdings);
+        const pk = resolveKey(sub.key, pricesObj);
+        const h = holdings[hk];
+        const v = valueOf(h, Object.assign({}, sub, { key: pk }));
         if (!v) return Object.assign({}, sub, { raw:0, rmb:0, cost:0, costRMB:0, marketValue:0, missing:true });
         return Object.assign({}, sub, v);
       });
