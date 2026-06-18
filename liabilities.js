@@ -267,11 +267,12 @@
           <span>剩余应缴尾款合计 <b class="num" style="color:var(--text-0)">${fmtK(totalRemaining)}</b> RMB</span>
         </div>
         <table class="lia-table">
-          <thead><tr><th title="保单名称/编号（展示用）">保单</th><th title="被保人">被保人</th><th title="受益人">受益人</th><th class="r" title="原币年保费（按保单币种）">年保费</th><th class="r" title="折算成人民币的年保费（按统一汇率）">折算 (RMB/年)</th><th title="缴费截止年或缴费期">缴至</th><th class="r" title="剩余应缴总额（按年保费×剩余年数估算）">剩余应缴尾款</th><th title="距离下一次缴费/截止的倒计时">倒计时</th></tr></thead>
+          <thead><tr><th title="保单名称/编号（展示用）">保单</th><th title="投保人（持有保单/缴费的人）">投保人</th><th title="被保人">被保人</th><th title="受益人">受益人</th><th class="r" title="原币年保费（按保单币种）">年保费</th><th class="r" title="折算成人民币的年保费（按统一汇率）">折算 (RMB/年)</th><th title="缴费截止年或缴费期">缴至</th><th class="r" title="剩余应缴总额（按年保费×剩余年数估算）">剩余应缴尾款</th><th title="距离下一次缴费/截止的倒计时">倒计时</th></tr></thead>
           <tbody>
             ${policyRows.map(({p, yearsLeftRound, annualRMB, remaining, cdCls}) => `
               <tr class="${cdCls === 'warn' ? 'urgent' : ''}">
                 <td><b>${p.name}</b><div style="color:var(--text-2);font-size:11px">${p.policyNo || ""} · 保额 ${fmtK(p.coverage)} ${p.ccy}</div></td>
+                <td>${p.policyHolder || "—"}</td>
                 <td>${p.insuredBy || "—"}</td>
                 <td>${p.beneficiary || "—"}</td>
                 <td class="r">${fmtK(p.amount)} ${p.ccy}</td>
