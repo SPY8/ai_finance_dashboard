@@ -9,11 +9,11 @@
   const today = new Date();
 
   Promise.all([
-    fetch(C.getDataPath("liabilities.json"), {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("recurring.json"),   {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("history.json"),     {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("target.json"),      {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("income_events.json"), {cache:"no-store"}).then(r => r.json()).catch(() => ({events:[]})),
+    C.fetchJson("liabilities.json"),
+    C.fetchJson("recurring.json"),
+    C.fetchJson("history.json"),
+    C.fetchJson("target.json"),
+    C.fetchJson("income_events.json", { fallback: { events: [] } }),
   ]).then(([lia, rec, hist, target, incEv]) => {
     try {
     // 取最新汇率
@@ -435,7 +435,7 @@
 
       const chartDom = container.querySelector('#waterfall-chart');
       if (waterfallChart) waterfallChart.dispose();
-      waterfallChart = echarts.init(chartDom, 'dark');
+      waterfallChart = echarts.init(chartDom, C.getEchartsTheme());
 
       const option = {
         backgroundColor: 'transparent',

@@ -516,17 +516,18 @@
 
   <div class="tabs-wrap">
     <nav class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="assets">📊 资产配置</button>
-      <button class="tab-btn" data-tab="target">🎯 目标配置</button>
+      <button class="tab-btn active" data-tab="assets">📊 资产全景</button>
+      <button class="tab-btn" data-tab="strategy">🎯 战略与规划</button>
+      <button class="tab-btn" data-tab="history">📈 趋势与复盘</button>
       <button class="tab-btn" data-tab="liab">💸 负债与刚性</button>
-      <button class="tab-btn" data-tab="cash">📈 现金流追踪</button>
-      <button class="tab-btn" data-tab="tax">💰 税务计算</button>
-      <button class="tab-btn" data-tab="risk">🧭 风控与政策</button>
+      <button class="tab-btn" data-tab="cash">🌊 现金流追踪</button>
+      <button class="tab-btn" data-tab="defense">🛡️ 风险与防守</button>
+      <button class="tab-btn" data-tab="tax">🧮 税务计算</button>
     </nav>
     <nav class="subtabs" id="subtabs" aria-label="页面结构导航"></nav>
   </div>
 
-  <!-- =========== Tab 1: 资产配置 =========== -->
+  <!-- =========== Tab 1: 资产全景 =========== -->
   <div class="tab-pane active" id="tab-assets">
     <div id="jump-kpis"></div>
     <section>
@@ -569,69 +570,84 @@
     </section>
 
     <section>
-      <h2>腾讯减仓阶梯</h2>
-      <div id="tencent-ladder"></div>
-    </section>
-    <section>
       <h2>对账与回报拆解</h2>
       <div id="reconcile-bar"></div>
     </section>
 
-    <div id="advanced-assets">
-      <section>
-        <h2>🔥 FIRE 评估<span class="hint">低频复盘：更适合季度或年度看一次</span></h2>
-        <div id="swr-card"></div>
-      </section>
-
-      <section>
-        <h2>偏离告警 · Sub 项明细</h2>
-        <div class="alerts">
-          <table class="al" id="alerts">
-            <thead>
-              <tr>
-                <th title="模块（大类）名称">模块</th>
-                <th title="子项名称（具体账户/标的）">子项</th>
-                <th class="r" title="市值（折RMB）：原币金额/证券市值按汇率折算">市值（RMB）</th>
-                <th class="r" title="实际占比=该项市值/总盘">实际占比</th>
-                <th class="r" title="该模块目标占比（来自target.json）">大类目标</th>
-                <th class="r" title="模块阈值：超过±阈值会触发超标/偏低告警">大类阈值</th>
-                <th class="r" title="偏离Δ=实际占比-目标占比（单位pp）">偏离</th>
-                <th title="模块状态：正常/大类超标/大类偏低">大类状态</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
-
-      <section>
-        <h2>趋势图 · 历史快照<span class="hint">所有更新自动归档到 <code style="background:var(--bg-2);padding:2px 6px;border-radius:4px">data/history.json</code></span></h2>
-        <div class="trends" id="trends"></div>
-      </section>
-
-      <section>
-        <h2>更新历史 · Timeline</h2>
-        <div class="alerts">
-          <div style="display:grid;grid-template-columns:90px 1fr 110px 70px;gap:12px;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--bg-2)">
-            <div>日期</div><div>备注</div><div style="text-align:right">总盘</div><div style="text-align:right">环比</div>
-          </div>
-          <div class="timeline" id="timeline"></div>
-        </div>
-      </section>
-
-      <section>
-        <h2>🚀 长期增长预测<span class="hint">基于 expectedReturn 加权 · 三档情景对比</span></h2>
-        <div class="lia-card" id="growth-projection"></div>
-      </section>
-
-      <section>
-        <h2>🏁 里程碑 · FIRE 路径动作清单<span class="hint">来自资产配置 V2.0 战术执行手册 P0/P1/P2/P3</span></h2>
-        <div class="lia-card" id="milestones"></div>
-      </section>
-    </div>
+    <section>
+      <h2>偏离告警 · Sub 项明细</h2>
+      <div class="alerts">
+        <table class="al" id="alerts">
+          <thead>
+            <tr>
+              <th title="模块（大类）名称">模块</th>
+              <th title="子项名称（具体账户/标的）">子项</th>
+              <th class="r" title="市值（折RMB）：原币金额/证券市值按汇率折算">市值（RMB）</th>
+              <th class="r" title="实际占比=该项市值/总盘">实际占比</th>
+              <th class="r" title="该模块目标占比（来自target.json）">大类目标</th>
+              <th class="r" title="模块阈值：超过±阈值会触发超标/偏低告警">大类阈值</th>
+              <th class="r" title="偏离Δ=实际占比-目标占比（单位pp）">偏离</th>
+              <th title="模块状态：正常/大类超标/大类偏低">大类状态</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
-  <!-- =========== Tab 2: 负债与刚性 =========== -->
+  <!-- =========== Tab 2: 战略与规划 =========== -->
+  <div class="tab-pane" id="tab-strategy">
+    <section>
+      <h2>概览</h2>
+      <div class="kpis" id="target-kpis"></div>
+    </section>
+
+    <section>
+      <h2>🔥 FIRE 评估<span class="hint">低频复盘：更适合季度或年度看一次</span></h2>
+      <div id="swr-card"></div>
+    </section>
+
+    <section>
+      <h2>🚀 长期增长预测<span class="hint">基于 expectedReturn 加权 · 三档情景对比</span></h2>
+      <div class="lia-card" id="growth-projection"></div>
+    </section>
+
+    <section>
+      <h2>腾讯减仓阶梯</h2>
+      <div id="tencent-ladder"></div>
+    </section>
+
+    <section>
+      <h2>🏁 里程碑 · 路径动作清单<span class="hint">核心战略执行点</span></h2>
+      <div class="lia-card" id="milestones"></div>
+      <div id="target-milestones-container"></div>
+    </section>
+
+    <div id="target-content"></div>
+  </div>
+
+  <!-- =========== Tab 3: 趋势与复盘 =========== -->
+  <div class="tab-pane" id="tab-history">
+    <section>
+      <h2>趋势图 · 历史快照<span class="hint">所有更新自动归档到 <code style="background:var(--bg-2);padding:2px 6px;border-radius:4px">data/history.json</code></span></h2>
+      <div class="trends" id="trends"></div>
+    </section>
+
+    <section>
+      <h2>快照更新历史 · Timeline</h2>
+      <div class="alerts">
+        <div style="display:grid;grid-template-columns:90px 1fr 110px 70px;gap:12px;font-size:10px;color:var(--text-3);text-transform:uppercase;letter-spacing:.4px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--bg-2)">
+          <div>日期</div><div>备注</div><div style="text-align:right">总盘</div><div style="text-align:right">环比</div>
+        </div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+    </section>
+
+    <div id="target-changelog-container"></div>
+  </div>
+
+  <!-- =========== Tab 4: 负债与刚性 =========== -->
   <div class="tab-pane" id="tab-liab">
     <section>
       <h2>概览</h2>
@@ -661,7 +677,7 @@
     </section>
   </div>
 
-  <!-- =========== Tab 3: 现金流追踪 =========== -->
+  <!-- =========== Tab 5: 现金流追踪 =========== -->
   <div class="tab-pane" id="tab-cash">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:14px;flex-wrap:wrap">
       <div style="display:flex;gap:8px;align-items:center">
@@ -713,19 +729,36 @@
     </section>
   </div>
 
-  <!-- =========== Tab 2: 目标配置 =========== -->
-  <div class="tab-pane" id="tab-target">
+  <!-- =========== Tab 6: 风险与防守 =========== -->
+  <div class="tab-pane" id="tab-defense">
     <section>
-      <h2>概览</h2>
-      <div class="kpis" id="target-kpis"></div>
+      <h2>风险概览</h2>
+      <div class="kpis" id="risk-kpis"></div>
     </section>
     <section>
-      <h2>模块与子项</h2>
-      <div id="target-content"></div>
+      <h2>工具与风险图谱</h2>
+      <div id="risk-content"></div>
+    </section>
+    <section>
+      <h2>对冲概览 <span class="hint">腾讯集中仓 vs 美股+黄金 对冲效果</span></h2>
+      <div id="hedge-overview"></div>
+      <div id="hedge-net-card"></div>
+    </section>
+    <section>
+      <h2>全品种盈亏排行 <span class="hint">按盈亏降序 · 已实现+浮动</span></h2>
+      <div id="hedge-ranking"></div>
+    </section>
+    <section>
+      <h2>对冲配对效果</h2>
+      <div id="hedge-pairs"></div>
+    </section>
+    <section>
+      <h2>操作时间线</h2>
+      <div id="hedge-timeline"></div>
     </section>
   </div>
 
-  <!-- =========== Tab 4: 税务计算 =========== -->
+  <!-- =========== Tab 7: 税务计算 =========== -->
   <div class="tab-pane" id="tab-tax">
     <section>
       <h2>概览</h2>
@@ -734,18 +767,6 @@
     <section>
       <h2>计算结果</h2>
       <div id="tax-content"></div>
-    </section>
-  </div>
-
-  <!-- =========== Tab 5: 风控与政策雷达 =========== -->
-  <div class="tab-pane" id="tab-risk">
-    <section>
-      <h2>概览</h2>
-      <div class="kpis" id="risk-kpis"></div>
-    </section>
-    <section>
-      <h2>工具与风险图谱</h2>
-      <div id="risk-content"></div>
     </section>
   </div>
 
@@ -796,13 +817,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
-<script src="./core.js"></script>
-<script src="./app.js"></script>
+<script src="./core.js?v=20260622"></script>
+<script src="./app.js?v=20260622"></script>
 <script src="./liabilities.js"></script>
 <script src="./cashflow.js"></script>
 <script src="./tax.js"></script>
 <script src="./target.js"></script>
-<script src="./risk_policy.js"></script>
+<script src="./risk_policy.js?v=20260623b"></script>
 <script>
   // Tab 切换 + URL hash 路由（方便外部用 #liab / #cash / #tax 直链跳转或截图）
   const subtabsEl = document.getElementById("subtabs");
@@ -893,13 +914,14 @@
     if (tab === "tax" && typeof renderTaxTab === "function") {
       renderTaxTab();
     }
-    // 切换到目标配置 Tab 时自动渲染
-    if (tab === "target" && typeof renderTargetTab === "function") {
+    // 切换到战略与规划或历史 Tab 时自动渲染 Target 内容（包含变更日志）
+    if ((tab === "strategy" || tab === "history") && typeof renderTargetTab === "function") {
       renderTargetTab();
     }
-    // 切换到风控与政策 Tab 时自动渲染
-    if (tab === "risk" && typeof renderRiskPolicyTab === "function") {
-      renderRiskPolicyTab();
+    // 切换到风险与防守 Tab 时自动渲染
+    if (tab === "defense") {
+      if (typeof renderRiskPolicyTab === "function") renderRiskPolicyTab();
+      if (typeof renderHedgeTab === "function") renderHedgeTab();
     }
     buildSubtabs(tab);
     setTimeout(() => buildSubtabs(tab), 350);
@@ -1064,6 +1086,7 @@
     btn.addEventListener("click", () => {
       setTheme(getTheme() === "light" ? "dark" : "light");
       syncThemeButton();
+      window.location.reload();
     });
 
     syncThemeButton();

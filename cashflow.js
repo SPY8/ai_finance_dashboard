@@ -9,11 +9,11 @@
   const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
 
   Promise.all([
-    fetch(C.getDataPath("transactions/index.json"), {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("categories.json"),         {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("recurring.json"),          {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("history.json"),            {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("income_events.json"),      {cache:"no-store"}).then(r => r.json()).catch(() => ({events:[]})),
+    C.fetchJson("transactions/index.json"),
+    C.fetchJson("categories.json"),
+    C.fetchJson("recurring.json"),
+    C.fetchJson("history.json"),
+    C.fetchJson("income_events.json", { fallback: { events: [] } }),
   ]).then(async ([txIndex, cats, rec, hist, incEv]) => {
     const years = (txIndex.years || []).slice().sort();
     if (years.length === 0) {
@@ -26,7 +26,7 @@
     const toRMB = (amt, ccy) => amt * (ccy === "RMB" ? 1 : (rates[ccy] || 1));
 
     const allYearData = await Promise.all(years.map(y =>
-      fetch(C.getDataPath(`transactions/yearly/${y}.json`), {cache:"no-store"}).then(r => r.json())
+      C.fetchJson(`transactions/yearly/${y}.json`)
     ));
 
     const picker = $("#month-picker");

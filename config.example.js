@@ -5,5 +5,6 @@
 window.AFD_CONFIG = {
   // 指定数据目录，默认为 demo_data
   // 如果你需要加载自己的真实数据，请在本地创建 config.js，并将此值改为 "data"
-  dataDir: "demo_data"
+  dataDir: "demo_data",
+  sharedDir: "demo_data"
 };
