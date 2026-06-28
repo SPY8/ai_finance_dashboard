@@ -25,7 +25,7 @@
       "note": "DEMO：税后到手月薪 ~1.2w"
     },
     {
-      "key": "qianhai_rent",
+      "key": "property_a_rent",
       "name": "房产 A 房租收入",
       "ccy": "RMB",
       "amount": 4500,
@@ -90,7 +90,7 @@
       "beneficiary": "Spouse",
       "coverage": 15000,
       "endDate": "2042-07-01",
-      "note": "DEMO：大儿子Kid1 重疾保额 USD 1.5 万"
+      "note": "DEMO：Kid1 重疾保额 USD 1.5 万"
     },
     {
       "key": "ins_ci_self",
@@ -130,7 +130,7 @@
       "beneficiary": "Spouse",
       "coverage": 500000,
       "endDate": "2055-12-31",
-      "note": "DEMO：小女儿Kid2少儿重疾保额 50w"
+      "note": "DEMO：Kid2 少儿重疾保额 50w"
     }
   ]
 }

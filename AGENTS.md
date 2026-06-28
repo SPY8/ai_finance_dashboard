@@ -26,9 +26,13 @@
 
 - 本地预览：`python3 -m http.server 8765`，浏览器打开 `http://127.0.0.1:8765`
 - 单元/轻集成：`node --test scripts/test_core.mjs`
+- 数据体检（改完数据必跑，复用 core.js 同源逻辑）：`node scripts/validate_data.mjs`
 - 浏览器级冒烟（assets/strategy/defense/tax + 主题切换）：`node scripts/smoke_tabs.mjs`
 
 **改动 SOP（数据相关）**
 
-- 改 `data/` 前先运行 `python3 scripts/backup_data.py "说明"`（会写入 `data/_backups/`，该目录不入库）
-- 修改后先做 JSON 校验，再刷新页面确认无“加载失败/渲染异常”
+> 完整流程见 [skills/finance-data-update.md](file:///Users/bigcat/Library/Mobile%20Documents/com~apple~CloudDocs/Muse/projects/ai-finance-dashboard/skills/finance-data-update.md)（脚本优先，给任意 AI 用的安全通道）。
+
+- **报数（只改数值）走脚本**：`python3 scripts/add_snapshot.py --show-keys` 看 key，再 `--set key.field=value` 报数。脚本自动备份 + 只 append 不覆盖 + 写后校验，别手改 `history.json`
+- **手动改 JSON**（补流水 / 新增品种 / 改战略 / 改 changelog）前先 `python3 scripts/backup_data.py "说明"`（写入 `data/_backups/`，不入库）
+- 改完一律 `node scripts/validate_data.mjs` 体检，再刷新页面确认无“加载失败/渲染异常”

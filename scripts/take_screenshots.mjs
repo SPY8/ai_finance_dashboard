@@ -26,9 +26,9 @@ const URL_BASE = `http://127.0.0.1:${PORT}/index.html`;
 const OUT_DIR = resolve(PROJECT_DIR, "screenshots");
 
 const TABS = [
-  { tab: "assets", file: "01_assets.png", label: "📊 资产配置" },
-  { tab: "liab",   file: "02_liabilities.png", label: "💸 负债与刚性" },
-  { tab: "cash",   file: "03_cashflow.png", label: "📈 现金流追踪" },
+  { tab: "assets", file: "01_assets.png", label: "📊 总览" },
+  { tab: "money",  file: "02_money.png", label: "💸 现金与负债" },
+  { tab: "risk",   file: "03_risk.png", label: "🛡️ 风险与宏观" },
 ];
 
 const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -56,8 +56,8 @@ try {
     // 等到对应 Tab 的 KPI 容器有内容（KPI 由 JS 异步写入）
     const kpiSelector = {
       assets: "#kpis .kpi",
-      liab:   "#liab-kpis .kpi",
-      cash:   "#cash-kpis .kpi",
+      money:  "#liab-kpis .kpi",
+      risk:   "#risk-kpis .kpi",
     }[tab];
 
     try {

@@ -18,6 +18,6 @@
   "incomes": [
     { "key":"salary_self",  "category":"salary",        "name":"Self工资（含奖金）", "amount": 22000,  "ccy":"RMB", "by":"self", "recurring":"salary_self", "note":"DEMO：填实际到手，截止 5/16 已发到 5 个月" },
     { "key":"salary_wife",  "category":"salary",        "name":"Spouse工资",           "amount": 12000,  "ccy":"RMB", "by":"wife", "recurring":"salary_wife" },
-    { "key":"rent_qianhai", "category":"rental_income", "name":"房产 A 房租",         "amount":  4500,  "ccy":"RMB", "by":"self", "recurring":"qianhai_rent" }
+    { "key":"rent_property_a", "category":"rental_income", "name":"房产 A 房租",         "amount":  4500,  "ccy":"RMB", "by":"self", "recurring":"property_a_rent" }
   ]
 }

@@ -80,6 +80,10 @@ test("demo target.json 的 milestones 可被正确统计", () => {
   const core = loadCore();
   const demoTarget = JSON.parse(fs.readFileSync(path.join(projectRoot, "demo_data", "target.json"), "utf8"));
   const stats = core.getMilestoneStats(demoTarget.milestones);
-  assert.equal(stats.done, 0);
-  assert.equal(stats.total, 7);
+  // 断言与 demo_data/target.json 当前内容对齐（数据更新后同步）
+  const rawItems = Array.isArray(demoTarget.milestones)
+    ? demoTarget.milestones
+    : (demoTarget.milestones && demoTarget.milestones.items) || [];
+  assert.equal(stats.total, rawItems.length);
+  assert.equal(stats.done, rawItems.filter(x => x.done).length);
 });

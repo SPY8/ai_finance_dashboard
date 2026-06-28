@@ -162,6 +162,7 @@
     // 渲染饼图
     setTimeout(() => {
       const pieChart = echarts.init($("#target-pie-chart"), C.getEchartsTheme());
+      window.AssetCore.registerChart(pieChart);
       pieChart.setOption({
         backgroundColor: 'transparent',
         tooltip: {
@@ -193,6 +194,7 @@
       // 计算币种分布
       const ccyData = calculateCurrencyDistribution(target);
       const ccyChart = echarts.init($("#target-ccy-chart"), C.getEchartsTheme());
+      window.AssetCore.registerChart(ccyChart);
       ccyChart.setOption({
         backgroundColor: 'transparent',
         tooltip: {

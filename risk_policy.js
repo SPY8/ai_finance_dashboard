@@ -33,12 +33,84 @@
     });
   }
 
+  function renderSellPuts() {
+    fetch(window.AssetCore.getDataPath("sell_puts.json") + "?t=" + Date.now(), { cache: "no-store" })
+      .then(r => r.json()).then(puts => {
+        const active = puts.filter(p => p.status === "active");
+        if (active.length === 0) {
+          document.getElementById("sell-puts-view").innerHTML = '<div style="color:var(--text-2);font-size:12px">暂无活跃 Sell Put 持仓</div>';
+          return;
+        }
+
+        const today = new Date();
+        const rows = active.map(p => {
+          const expiry = new Date(p.expiration);
+          const daysLeft = Math.max(0, Math.ceil((expiry - today) / 86400000));
+          const premiumTotal = (p.premium * p.quantity * 100).toFixed(0);
+          const obligation = (p.strike * p.quantity * 100).toFixed(0);
+          const urgency = daysLeft <= 7 ? 'danger' : (daysLeft <= 14 ? 'warn' : 'ok');
+          return `
+            <div style="background:var(--bg-1);border:1px solid var(--line);border-left:3px solid var(--${urgency === 'ok' ? 'ok' : urgency === 'warn' ? 'warn' : 'danger'});border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;gap:14px;font-size:12px">
+              <div style="font-weight:600;min-width:60px">${p.ticker}</div>
+              <div style="color:var(--text-2)">行权 <b style="color:var(--text-0);font-family:'JetBrains Mono',monospace">$${p.strike}</b></div>
+              <div style="color:var(--text-2)">到期 <b style="color:var(--text-0);font-family:'JetBrains Mono',monospace">${p.expiration}</b></div>
+              <div style="color:var(--${urgency})">还剩 <b style="font-family:'JetBrains Mono',monospace">${daysLeft} 天</b></div>
+              <div style="color:var(--ok);font-family:'JetBrains Mono',monospace">权利金 +$${premiumTotal}</div>
+              <div style="color:var(--text-2);font-family:'JetBrains Mono',monospace;margin-left:auto">或有接盘 $${Number(obligation).toLocaleString()}</div>
+            </div>
+          `;
+        }).join("");
+
+        const totalPremium = active.reduce((a, p) => a + p.premium * p.quantity * 100, 0);
+        const totalObligation = active.reduce((a, p) => a + p.strike * p.quantity * 100, 0);
+        document.getElementById("sell-puts-view").innerHTML = `
+          ${rows}
+          <div style="display:flex;gap:20px;margin-top:8px;font-size:11px;color:var(--text-2)">
+            <span>💰 已收权利金合计 <b style="color:var(--ok);font-family:'JetBrains Mono',monospace">$${totalPremium.toFixed(0)}</b></span>
+            <span>⚠️ 最大接盘义务 <b style="color:var(--warn);font-family:'JetBrains Mono',monospace">$${totalObligation.toLocaleString()}</b></span>
+          </div>
+        `;
+      }).catch(() => {
+        document.getElementById("sell-puts-view").innerHTML = '<div style="color:var(--text-2);font-size:12px">加载失败</div>';
+      });
+  }
+
+  function renderTriggers() {
+    fetch(window.AssetCore.getDataPath("triggers.json") + "?t=" + Date.now(), { cache: "no-store" })
+      .then(r => r.json()).then(triggers => {
+        const tiers = ["长周期宏观", "中周期网格", "极端尾部风险", "合规与税务", "美元化债路径"];
+        const colors = { red: "var(--danger)", warn: "var(--warn)", ok: "var(--ok)", info: "var(--accent)" };
+        const html = tiers.map(tier => {
+          const items = triggers.filter(t => t.tier === tier);
+          if (!items.length) return "";
+          const cards = items.map(t => {
+            const statusColor = colors[t.status] || "var(--text-2)";
+            const triggersHTML = t.triggers.map(tr => `<div style="padding:3px 0;font-size:11px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[tr.level]};margin-right:6px"></span><b style="color:${colors[tr.level]}">${tr.level === 'red' ? '红灯' : tr.level === 'warn' ? '黄灯' : tr.level === 'info' ? '网格' : 'OK'}:</b> ${tr.condition} → <span style="color:var(--text-1)">${tr.action}</span></div>`).join("");
+            return `<div style="background:var(--bg-1);border:1px solid var(--line);border-left:3px solid ${statusColor};border-radius:8px;padding:12px 14px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                <div style="font-size:14px;font-weight:600">${t.title}</div>
+                <div style="font-size:10px;color:${statusColor};font-family:'JetBrains Mono',monospace">${t.current}</div>
+              </div>
+              <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">${t.logic}</div>
+              ${triggersHTML}
+            </div>`;
+          }).join("");
+          return `<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">${tier}</div>${cards}</div>`;
+        }).filter(Boolean).join("");
+        document.getElementById("triggers-view").innerHTML = html;
+      }).catch(() => {
+        document.getElementById("triggers-view").innerHTML = '<div style="color:var(--text-2);font-size:12px">加载失败</div>';
+      });
+  }
+
   window.renderRiskPolicyTab = function() {
     if (hasRendered && $("#risk-content").dataset.loaded === "true") return;
 
     loadData().then(({ risks, arsenal }) => {
       renderKPIs(risks, arsenal);
       renderLayout(risks, arsenal);
+      renderSellPuts();
+      renderTriggers();
       bindEvents();
       
       $("#risk-content").dataset.loaded = "true";

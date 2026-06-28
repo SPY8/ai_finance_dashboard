@@ -436,6 +436,7 @@
       const chartDom = container.querySelector('#waterfall-chart');
       if (waterfallChart) waterfallChart.dispose();
       waterfallChart = echarts.init(chartDom, C.getEchartsTheme());
+      window.AssetCore.registerChart(waterfallChart);
 
       const option = {
         backgroundColor: 'transparent',

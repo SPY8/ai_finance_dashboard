@@ -97,17 +97,17 @@ try {
   if (state.theme === beforeTheme) throw new Error("theme-toggle: 主题未切换");
   console.log(`theme toggle ok, ${beforeTheme} -> ${state.theme}`);
 
-  await page.click('.tab-btn[data-tab="strategy"]');
+  await page.click('.tab-btn[data-tab="plan"]');
   await page.waitForSelector("#target-kpis .kpi", { timeout: 15000 });
   await page.waitForSelector("#target-content section", { timeout: 15000 });
-  await assertNoRuntimeErrors(page, "strategy");
-  console.log("strategy ok");
+  await assertNoRuntimeErrors(page, "plan");
+  console.log("plan ok");
 
-  await page.click('.tab-btn[data-tab="defense"]');
+  await page.click('.tab-btn[data-tab="risk"]');
   await page.waitForSelector("#risk-kpis .kpi", { timeout: 15000 });
-  await page.waitForSelector(".arsenal-card, #risk-map .risk-node", { timeout: 15000 });
-  await assertNoRuntimeErrors(page, "defense");
-  console.log("defense ok");
+  await page.waitForSelector("#risk-content > *", { timeout: 15000 });
+  await assertNoRuntimeErrors(page, "risk");
+  console.log("risk ok");
 
   await page.click('.tab-btn[data-tab="tax"]');
   await page.waitForSelector("#tax-kpis .kpi", { timeout: 15000 });

@@ -18,6 +18,6 @@
   "incomes": [
     { "key":"salary_self",  "category":"salary",        "name":"Self工资（含奖金）", "amount": 264000, "ccy":"RMB", "by":"self", "recurring":"salary_self" },
     { "key":"salary_wife",  "category":"salary",        "name":"Spouse工资",           "amount": 144000, "ccy":"RMB", "by":"wife", "recurring":"salary_wife" },
-    { "key":"rent_qianhai", "category":"rental_income", "name":"房产 A 房租",        "amount":  54000, "ccy":"RMB", "by":"self", "recurring":"qianhai_rent", "note":"4500 ×12" }
+    { "key":"rent_property_a", "category":"rental_income", "name":"房产 A 房租",        "amount":  54000, "ccy":"RMB", "by":"self", "recurring":"property_a_rent", "note":"4500 ×12" }
   ]
 }

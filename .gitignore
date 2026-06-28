@@ -24,3 +24,5 @@ node_modules/
 *.md
 !README.md
 !AGENTS.md
+# skills/ 下的 SOP 文档随项目入库（给协作 AI 用）
+!skills/*.md

@@ -273,7 +273,7 @@ window.AssetCore = (function () {
     });
 
     // 金融盘 vs 整体盘（剔除房产 + 待变现）
-    const realEstateKeys = new Set(["qianhai_property","dingtai_property"]);
+    const realEstateKeys = new Set(["property_a","property_b"]);
     let financialTotal = 0;
     modules.forEach(function (m) {
       if (m.key === "_orphan") return;
@@ -289,7 +289,7 @@ window.AssetCore = (function () {
   // ========== 加权预期年化 ==========
   function weightedExpectedReturn(cur, scenario, opts) {
     opts = opts || {};
-    const realEstateKeys = new Set(["qianhai_property","dingtai_property"]);
+    const realEstateKeys = new Set(["property_a","property_b"]);
     let weighted = 0, totalW = 0;
     cur.modules.forEach(function (m) {
       if (m.key === "_orphan" && opts.excludeOrphan !== false) return;
@@ -380,7 +380,7 @@ window.AssetCore = (function () {
         category: "pending",
         title: "存在待变现资产",
         detail: `${fmtK(orphan.total)} RMB（占 ${(orphan.actualPct*100).toFixed(1)}%）。`,
-        action: "完成 P0 鼎太定价 + 售出后重分配",
+        action: "完成 P0 核心房产定价 + 售出后重分配",
       });
     }
 
@@ -449,5 +449,15 @@ window.AssetCore = (function () {
     runAssertions: runAssertions,
     getDataPath: getDataPath,
     fetchJson: fetchJson,
+
+    // 图表注册表 — tab 切换时自动 resize 避免宽度塌陷
+    _charts: [],
+    registerChart: function(chart) { this._charts.push(chart); },
+    resizeAllCharts: function() {
+      this._charts = this._charts.filter(function(c) {
+        if (c && !c.isDisposed()) { c.resize(); return true; }
+        return false;
+      });
+    },
   };
 })();

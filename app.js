@@ -599,6 +599,7 @@ python3 -m http.server 8765</pre>
       const chartDom = container.querySelector(`#trend-chart-${i} > div:last-child`);
       const chart = echarts.init(chartDom, C.getEchartsTheme());
       trendCharts.push(chart);
+      window.AssetCore.registerChart(chart);
 
       const activeIndex = enriched.findIndex(s => s.date === activeDate);
 
@@ -749,6 +750,7 @@ python3 -m http.server 8765</pre>
     const chartDom = root.querySelector('#growth-chart');
     if (growthChart) growthChart.dispose();
     growthChart = echarts.init(chartDom, C.getEchartsTheme());
+    window.AssetCore.registerChart(growthChart);
 
     const option = {
       backgroundColor: 'transparent',
@@ -957,6 +959,7 @@ python3 -m http.server 8765</pre>
     const chartDom = root.querySelector('#tencent-ladder-chart');
     if (tencentLadderChart) tencentLadderChart.dispose();
     tencentLadderChart = echarts.init(chartDom, C.getEchartsTheme());
+    window.AssetCore.registerChart(tencentLadderChart);
 
     const option = {
       backgroundColor: 'transparent',

@@ -155,6 +155,9 @@
   .subtab-btn{background:var(--bg-1);border:1px solid var(--line);border-radius:999px;color:var(--text-2);font:inherit;font-size:12px;padding:4px 10px;cursor:pointer;white-space:nowrap;transition:border-color .12s,color .12s}
   .subtab-btn:hover{border-color:var(--line-2);color:var(--text-0)}
   .subtab-btn.active{border-color:var(--accent);color:var(--text-0)}
+  /* 合并 tab 后，subtab 栏内的分组标签（防守 / 宏观 / 规划 / 复盘 …）*/
+  .subtab-group{display:inline-flex;align-items:center;color:var(--text-3);font-size:10px;letter-spacing:.5px;text-transform:uppercase;font-weight:600;padding:0 2px 0 10px;margin-left:6px;border-left:1px solid var(--line-2);white-space:nowrap;align-self:center}
+  .subtabs .subtab-group:first-child{border-left:none;margin-left:0;padding-left:2px}
   .tab-pane{display:none}
   .tab-pane.active{display:block}
 
@@ -516,12 +519,10 @@
 
   <div class="tabs-wrap">
     <nav class="tabs" role="tablist">
-      <button class="tab-btn active" data-tab="assets">📊 资产全景</button>
-      <button class="tab-btn" data-tab="strategy">🎯 战略与规划</button>
-      <button class="tab-btn" data-tab="history">📈 趋势与复盘</button>
-      <button class="tab-btn" data-tab="liab">💸 负债与刚性</button>
-      <button class="tab-btn" data-tab="cash">🌊 现金流追踪</button>
-      <button class="tab-btn" data-tab="defense">🛡️ 风险与防守</button>
+      <button class="tab-btn active" data-tab="assets">📊 总览</button>
+      <button class="tab-btn" data-tab="plan">🎯 规划与复盘</button>
+      <button class="tab-btn" data-tab="money">💸 现金与负债</button>
+      <button class="tab-btn" data-tab="risk">🛡️ 风险与宏观</button>
       <button class="tab-btn" data-tab="tax">🧮 税务计算</button>
     </nav>
     <nav class="subtabs" id="subtabs" aria-label="页面结构导航"></nav>
@@ -596,15 +597,15 @@
     </section>
   </div>
 
-  <!-- =========== Tab 2: 战略与规划 =========== -->
-  <div class="tab-pane" id="tab-strategy">
-    <section>
-      <h2>概览</h2>
+  <!-- =========== Tab 2: 规划与复盘（战略规划 + 趋势复盘）=========== -->
+  <div class="tab-pane" id="tab-plan">
+    <section data-subgroup="规划">
+      <h2>目标概览</h2>
       <div class="kpis" id="target-kpis"></div>
     </section>
 
-    <section>
-      <h2>🔥 FIRE 评估<span class="hint">低频复盘：更适合季度或年度看一次</span></h2>
+    <section data-default-collapsed="1">
+      <h2>🔥 FIRE 评估<span class="hint">低频复盘：更适合季度或年度看一次 · 默认折叠</span></h2>
       <div id="swr-card"></div>
     </section>
 
@@ -625,11 +626,9 @@
     </section>
 
     <div id="target-content"></div>
-  </div>
 
-  <!-- =========== Tab 3: 趋势与复盘 =========== -->
-  <div class="tab-pane" id="tab-history">
-    <section>
+    <!-- ↓↓↓ 复盘组（原“趋势与复盘”tab，已并入本页）↓↓↓ -->
+    <section data-subgroup="复盘">
       <h2>趋势图 · 历史快照<span class="hint">所有更新自动归档到 <code style="background:var(--bg-2);padding:2px 6px;border-radius:4px">data/history.json</code></span></h2>
       <div class="trends" id="trends"></div>
     </section>
@@ -647,10 +646,10 @@
     <div id="target-changelog-container"></div>
   </div>
 
-  <!-- =========== Tab 4: 负债与刚性 =========== -->
-  <div class="tab-pane" id="tab-liab">
-    <section>
-      <h2>概览</h2>
+  <!-- =========== Tab 3: 现金与负债（负债刚性 + 现金流）=========== -->
+  <div class="tab-pane" id="tab-money">
+    <section data-subgroup="负债">
+      <h2>负债概览</h2>
       <div class="kpis" id="liab-kpis"></div>
     </section>
 
@@ -675,11 +674,9 @@
         <div class="waterfall" id="waterfall"></div>
       </div>
     </section>
-  </div>
 
-  <!-- =========== Tab 5: 现金流追踪 =========== -->
-  <div class="tab-pane" id="tab-cash">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:14px;flex-wrap:wrap">
+    <!-- ↓↓↓ 现金流组（原“现金流追踪”tab，已并入本页）↓↓↓ -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:18px 0 10px;gap:14px;flex-wrap:wrap">
       <div style="display:flex;gap:8px;align-items:center">
         <span style="color:var(--text-2);font-size:var(--fs-xs);text-transform:uppercase;letter-spacing:.4px">年份</span>
         <select id="month-picker" class="date-picker"></select>
@@ -687,8 +684,8 @@
       <div style="color:var(--text-3);font-size:var(--fs-xs)"><code style="background:var(--bg-2);padding:1px 5px;border-radius:3px">data/transactions/yearly/YYYY.json</code></div>
     </div>
 
-    <section>
-      <h2>概览</h2>
+    <section data-subgroup="现金流">
+      <h2>本年概览</h2>
       <div class="kpis" id="cash-kpis"></div>
     </section>
 
@@ -729,11 +726,15 @@
     </section>
   </div>
 
-  <!-- =========== Tab 6: 风险与防守 =========== -->
-  <div class="tab-pane" id="tab-defense">
-    <section>
+  <!-- =========== Tab 4: 风险与宏观（风险防守 + 人口宏观）=========== -->
+  <div class="tab-pane" id="tab-risk">
+    <section data-subgroup="防守">
       <h2>风险概览</h2>
       <div class="kpis" id="risk-kpis"></div>
+    </section>
+    <section>
+      <h2>Sell Put 持仓 <span class="hint">现金担保看跌期权 · 或有接盘义务</span></h2>
+      <div id="sell-puts-view"></div>
     </section>
     <section>
       <h2>工具与风险图谱</h2>
@@ -756,9 +757,32 @@
       <h2>操作时间线</h2>
       <div id="hedge-timeline"></div>
     </section>
+    <section>
+      <h2>⚡ V2.7 操作预案仪表盘 <span class="hint">IF-THEN 触发-执行 · 三周期八节点 · 线到了就扣扳机</span></h2>
+      <div id="triggers-view"></div>
+    </section>
+
+    <!-- ↓↓↓ 宏观组（原“人口与宏观”tab，已并入本页）↓↓↓ -->
+    <section data-subgroup="宏观">
+      <h2>核心指标 <span class="hint">每年 2 月统计局公报后更新 · CRO 长期监控体系</span></h2>
+      <div id="pop-alerts"></div>
+      <div class="kpis" id="pop-kpis"></div>
+    </section>
+    <section>
+      <h2>新生儿数量趋势<span class="hint">红线 500 万 · 黄灯 700 万</span></h2>
+      <div id="pop-chart-nb" style="width:100%;height:260px"></div>
+    </section>
+    <section>
+      <h2>M2 − GDP 隐性印钞指数<span class="hint">黄灯 ≥ 4pp · 红灯 ≥ 6pp</span></h2>
+      <div id="pop-chart-m2" style="width:100%;height:260px"></div>
+    </section>
+    <section>
+      <h2>人口周期三阶段推演</h2>
+      <div id="pop-stages" style="display:flex;flex-direction:column;gap:12px"></div>
+    </section>
   </div>
 
-  <!-- =========== Tab 7: 税务计算 =========== -->
+  <!-- =========== Tab 5: 税务计算 =========== -->
   <div class="tab-pane" id="tab-tax">
     <section>
       <h2>概览</h2>
@@ -824,6 +848,7 @@
 <script src="./tax.js"></script>
 <script src="./target.js"></script>
 <script src="./risk_policy.js?v=20260623b"></script>
+<script src="./population_dashboard.js?v=20260625"></script>
 <script>
   // Tab 切换 + URL hash 路由（方便外部用 #liab / #cash / #tax 直链跳转或截图）
   const subtabsEl = document.getElementById("subtabs");
@@ -879,10 +904,19 @@
 
     _activeTab = tab;
     _subtabSections = sections;
+    let _lastGroup = "";
+    let _renderedGroup = null;
     subtabsEl.innerHTML = sections.map(sec => {
       const h2 = sec.querySelector("h2");
       const title = getH2Title(h2);
-      return `<button class="subtab-btn" type="button" data-target="${sec.id}">${title || "—"}</button>`;
+      const group = sec.dataset.subgroup || _lastGroup;
+      _lastGroup = group;
+      let divider = "";
+      if (group && group !== _renderedGroup) {
+        _renderedGroup = group;
+        divider = `<span class="subtab-group">${group}</span>`;
+      }
+      return divider + `<button class="subtab-btn" type="button" data-target="${sec.id}">${title || "—"}</button>`;
     }).join("");
     subtabsEl.classList.add("show");
     _subtabButtons = Array.from(subtabsEl.querySelectorAll(".subtab-btn"));
@@ -910,18 +944,26 @@
   function activateTab(tab) {
     document.querySelectorAll(".tab-btn").forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
     document.querySelectorAll(".tab-pane").forEach(p => p.classList.toggle("active", p.id === "tab-" + tab));
+
+    // 切换 tab 后 resize 所有 ECharts（修复隐藏 tab 图表宽度塌陷）
+    if (window.AssetCore && typeof window.AssetCore.resizeAllCharts === "function") {
+      setTimeout(function() { window.AssetCore.resizeAllCharts(); }, 50);
+      setTimeout(function() { window.AssetCore.resizeAllCharts(); }, 300);
+    }
+
     // 切换到税务 Tab 时自动渲染
     if (tab === "tax" && typeof renderTaxTab === "function") {
       renderTaxTab();
     }
-    // 切换到战略与规划或历史 Tab 时自动渲染 Target 内容（包含变更日志）
-    if ((tab === "strategy" || tab === "history") && typeof renderTargetTab === "function") {
+    // 切换到「规划与复盘」Tab 时渲染 Target 内容（战略配置 + 变更日志）
+    if (tab === "plan" && typeof renderTargetTab === "function") {
       renderTargetTab();
     }
-    // 切换到风险与防守 Tab 时自动渲染
-    if (tab === "defense") {
+    // 切换到「风险与宏观」Tab 时渲染 风险防守 + 人口宏观
+    if (tab === "risk") {
       if (typeof renderRiskPolicyTab === "function") renderRiskPolicyTab();
       if (typeof renderHedgeTab === "function") renderHedgeTab();
+      if (typeof renderPopulationTab === "function") renderPopulationTab();
     }
     buildSubtabs(tab);
     setTimeout(() => buildSubtabs(tab), 350);
@@ -932,12 +974,15 @@
       history.replaceState(null, "", "#" + btn.dataset.tab);
     });
   });
+  // 旧 hash 兼容：8 tab 合并为 5 后，老链接/书签/截图脚本仍可正确跳转
+  const TAB_ALIAS = { strategy: "plan", history: "plan", liab: "money", cash: "money", defense: "risk", population: "risk" };
+  function resolveTab(h) { return TAB_ALIAS[h] || h; }
   (function () {
-    const h = (location.hash || "").replace("#", "");
+    const h = resolveTab((location.hash || "").replace("#", ""));
     if (h && document.getElementById("tab-" + h)) activateTab(h);
   })();
   window.addEventListener("hashchange", () => {
-    const h = location.hash.replace("#", "");
+    const h = resolveTab(location.hash.replace("#", ""));
     if (h && document.getElementById("tab-" + h)) activateTab(h);
   });
 
@@ -1210,7 +1255,11 @@
         try { window.localStorage && window.localStorage.setItem(lsKey, collapsed ? "1" : "0"); } catch (err) {}
       }
       let initCollapsed = false;
-      try { initCollapsed = window.localStorage && window.localStorage.getItem(lsKey) === "1"; } catch (err) {}
+      const defaultCollapsed = section.getAttribute("data-default-collapsed") === "1";
+      try {
+        const stored = window.localStorage ? window.localStorage.getItem(lsKey) : null;
+        initCollapsed = (stored === null || stored === undefined) ? defaultCollapsed : (stored === "1");
+      } catch (err) { initCollapsed = defaultCollapsed; }
       setCollapsed(initCollapsed);
       btn.addEventListener("click", () => setCollapsed(body.style.display !== "none"));
     }
