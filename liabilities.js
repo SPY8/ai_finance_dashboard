@@ -65,9 +65,20 @@
     const annualInterestRMB = liaList
       .reduce((a,l) => a + toRMB(l.annualInterest || 0, l.ccy), 0);
 
-    // ---- 总资产（取最新 snapshot 总盘） ----
-    const latestTotal = snaps.length ? computeSnapshotTotal(snaps[snaps.length-1], rates) : 0;
+    // ---- 总资产（取最新 snapshot 总盘，注入保单现金价值后） ----
+    const latestSnap = snaps.length ? snaps[snaps.length-1] : null;
+    if (latestSnap) C.injectInsuranceCashValue(latestSnap, rec);
+    const latestTotal = latestSnap ? computeSnapshotTotal(latestSnap, rates) : 0;
     const netWorth = latestTotal - totalDebtRMB;
+
+    // ---- 保单现金价值（当年合计 + 当年各保单值，供 KPI 和曲线图共用）----
+    const cvYear = today.getFullYear();
+    const cvPolicies = (rec.expenses || []).filter(e => e && e.kind === "insurance" && e.cashValueSchedule);
+    let totalCashValueNow = 0;
+    cvPolicies.forEach(p => {
+      const v = C.resolveCashValueForYear(p.cashValueSchedule, cvYear);
+      totalCashValueNow += v * (p.ccy === "RMB" ? 1 : (rates[p.ccy] || 1));
+    });
 
     // ---- 过渡期 / 退休后净流（基于瀑布图 nominal 模型预算） ----
     // 注意：inflationRate / retirement 在这里声明，被本块的 IIFE 和后面的瀑布图共用
@@ -151,6 +162,13 @@
         value: fmtK(annualInsuranceRMB),
         sub: `${(rec.expenses||[]).filter(e=>e.kind==='insurance'&&isActive(e)).length} 张保单`,
         help: "recurring.json里kind=insurance的活跃保费，折算为年合计（折RMB）",
+        tone: "ok",
+      },
+      {
+        label: "保单现金价值",
+        value: fmtK(totalCashValueNow),
+        sub: `${cvPolicies.length} 张保单 · 当年合计`,
+        help: "各保单当年现金价值（退保价值）折 RMB 合计；来自 recurring.json cashValueSchedule",
         tone: "ok",
       },
       {
@@ -546,6 +564,10 @@
       });
     }
     renderWaterfall(inflationMode);
+
+    // ---- 保单现金价值曲线 ----
+    renderInsuranceCVChart(rec, rates);
+
     } catch (e) {
       console.error("liabilities render error:", e);
       $("#liab-kpis").innerHTML = `<div style="padding:24px;color:var(--danger);font-family:monospace;white-space:pre-wrap">渲染异常：${e.message}\n\n${e.stack || ""}</div>`;
@@ -602,11 +624,110 @@
     };
     return map[kind] || kind || "—";
   }
+  // ---- 保单现金价值曲线（ECharts）----
+  let insuranceCVChart = null;
+  function renderInsuranceCVChart(rec, rates) {
+    const container = $("#insurance-cv-chart");
+    if (!container) return;
+    const policies = (rec.expenses || []).filter(e => e && e.kind === "insurance" && e.cashValueSchedule);
+    if (policies.length === 0) {
+      container.innerHTML = `<div style="padding:24px;color:var(--text-2);text-align:center">还没有保单现金价值数据。在 recurring.json 的保险项里填 cashValueSchedule（{年份:金额}）即可显示。</div>`;
+      return;
+    }
+
+    // 年份范围：所有 schedule 首年 → 末年；至少覆盖到今天 +10 年
+    let yMin = Infinity, yMax = -Infinity;
+    policies.forEach(p => {
+      const yrs = Object.keys(p.cashValueSchedule).map(Number);
+      if (!yrs.length) return;
+      yrs.sort((a,b)=>a-b);
+      yMin = Math.min(yMin, yrs[0]);
+      yMax = Math.max(yMax, yrs[yrs.length-1]);
+    });
+    if (!isFinite(yMin)) { container.innerHTML = ""; return; }
+    yMax = Math.max(yMax, today.getFullYear() + 10);
+    const years = [];
+    for (let y = yMin; y <= yMax; y++) years.push(y);
+
+    const toRMB = (amt, ccy) => amt * (ccy === "RMB" ? 1 : (rates[ccy] || 1));
+
+    // 每张保单一条 line + 合计
+    const series = policies.map(p => {
+      const data = years.map(y => {
+        const v = C.resolveCashValueForYear(p.cashValueSchedule, y);
+        return Math.round(toRMB(v, p.ccy));
+      });
+      return {
+        name: p.name,
+        type: "line",
+        smooth: true,
+        symbol: "none",
+        lineStyle: { width: 1.5, opacity: 0.55 },
+        itemStyle: { opacity: 0.7 },
+        data,
+      };
+    });
+    const totalData = years.map((y, i) => {
+      let s = 0;
+      for (let k = 0; k < policies.length; k++) s += (series[k].data[i] || 0);
+      return s;
+    });
+    series.push({
+      name: "合计",
+      type: "line",
+      smooth: true,
+      symbol: "circle",
+      symbolSize: 5,
+      lineStyle: { width: 2.5, color: "var(--gold)" },
+      itemStyle: { color: "var(--gold)" },
+      data: totalData,
+    });
+
+    if (insuranceCVChart) insuranceCVChart.dispose();
+    insuranceCVChart = echarts.init(container, "dark");
+    insuranceCVChart.setOption({
+      backgroundColor: "transparent",
+      tooltip: {
+        trigger: "axis",
+        backgroundColor: "rgba(19,23,31,0.95)",
+        borderColor: "#1f2533",
+        textStyle: { color: "#e8ecf3", fontSize: 11 },
+        formatter: (params) => {
+          let html = `<div style="font-family:'JetBrains Mono',monospace;font-weight:600;margin-bottom:6px">${params[0].axisValue} 年</div>`;
+          params.forEach(p => {
+            html += `<div style="display:flex;justify-content:space-between;gap:20px"><span>${p.marker}${p.seriesName}</span><b style="font-family:'JetBrains Mono',monospace">${fmtK(p.value)}</b></div>`;
+          });
+          return html;
+        },
+      },
+      legend: {
+        data: series.map(s => s.name),
+        textStyle: { color: "#9ba4b6", fontSize: 11 },
+        top: 0, type: "scroll",
+      },
+      grid: { top: 40, right: 20, bottom: 30, left: 70 },
+      xAxis: {
+        type: "category",
+        data: years.map(String),
+        axisLine: { lineStyle: { color: "#1f2533" } },
+        axisLabel: { color: "#5e677a", fontSize: 10, fontFamily: "JetBrains Mono" },
+        axisTick: { show: false },
+      },
+      yAxis: {
+        type: "value",
+        axisLine: { show: false },
+        splitLine: { lineStyle: { color: "#1f2533", type: "dashed" } },
+        axisLabel: { color: "#5e677a", fontSize: 10, fontFamily: "JetBrains Mono", formatter: v => fmtK(Math.abs(v)) },
+      },
+      series,
+    });
+    window.addEventListener("resize", function () { if (insuranceCVChart) insuranceCVChart.resize(); });
+  }
+
   function computeSnapshotTotal(snap, rates) {
     return Object.values(snap.holdings || {}).reduce((a, h) => {
       const ccy = h.ccy || "RMB";
       const rate = ccy === "RMB" ? 1 : (rates[ccy] || 1);
       return a + (Number(h.raw) || 0) * rate;
     }, 0);
-  }
-})();
+  }})();

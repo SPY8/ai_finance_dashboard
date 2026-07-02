@@ -15,15 +15,23 @@
   Promise.all([
     fetch(C.getDataPath("target.json"), {cache:"no-store"}).then(r => r.json()),
     fetch(C.getDataPath("history.json"),{cache:"no-store"}).then(r => r.json()),
-  ]).then(([target, history]) => {
+    fetch(C.getDataPath("recurring.json"),{cache:"no-store"}).then(r => r.json()).catch(() => null),
+  ]).then(([target, history, recurring]) => {
     const snaps = (history.snapshots || []).slice().sort((a,b) => a.date.localeCompare(b.date));
     if (snaps.length === 0) {
       document.body.innerHTML = `<div style="padding:40px;color:#fff;font-family:system-ui">history.json 中没有任何 snapshot。请先添加一条。</div>`;
       return;
     }
 
+    // 复用给 computeAnnualPassiveIncome / computeAnnualExpenseEstimate（它们原本要自己 fetch recurring）
+    _recurringCache = recurring;
+
     // 给所有 snapshot 预先算出 RMB 等值 + 模块/总计
-    const enriched = snaps.map(s => enrichSnapshot(s, target));
+    // 先把保单当年现金价值注入 holdings，再 enrich
+    const enriched = snaps.map(s => {
+      if (recurring) C.injectInsuranceCashValue(s, recurring);
+      return enrichSnapshot(s, target);
+    });
 
     // ---- 日期选择器 ----
     const picker = $("#date-picker");

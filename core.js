@@ -324,6 +324,62 @@ window.AssetCore = (function () {
     return issues;
   }
 
+  // ========== 保单现金价值（按年度时间序列）==========
+  // schedule = { "2026": 18000, "2028": 21100, ... }，金额为保单原币种。
+  // 缺失年份线性插值；早于首年取 0；晚于末年取末年值（现金价值表通常给到某个保单年度后趋稳）。
+  function resolveCashValueForYear(schedule, year) {
+    if (!schedule) return 0;
+    const keys = Object.keys(schedule).map(Number).filter(y => !isNaN(y));
+    if (keys.length === 0) return 0;
+    keys.sort(function (a, b) { return a - b; });
+    if (year < keys[0]) return 0;
+    if (year >= keys[keys.length - 1]) return Number(schedule[keys[keys.length - 1]]) || 0;
+    for (let i = 0; i < keys.length - 1; i++) {
+      const y0 = keys[i], y1 = keys[i + 1];
+      if (year >= y0 && year <= y1) {
+        const v0 = Number(schedule[y0]) || 0;
+        const v1 = Number(schedule[y1]) || 0;
+        if (y1 === y0) return v0;
+        const t = (year - y0) / (y1 - y0);
+        return v0 + (v1 - v0) * t;
+      }
+    }
+    return 0;
+  }
+
+  // 把所有保单当年现金价值合计注入 snap.holdings.insurance_cashvalue（就地修改）。
+  // 优先用 cashValueSchedule（按 snap.date 取年份 + 插值）；兼容旧字段 cashValueRMB（当作当前值，原币种→需 schedule 没有时才用）。
+  // 已存在 insurance_cashvalue 不覆盖。sumRMB > 0 才写入。
+  function injectInsuranceCashValue(snap, recurring) {
+    if (!snap || !recurring) return;
+    if (!snap.holdings) snap.holdings = {};
+    if (snap.holdings.insurance_cashvalue != null) return;
+    const rates = snap.rates || { USD: 1, HKD: 1 };
+    const year = (parseDate(snap.date) || new Date()).getFullYear();
+    const expenses = (recurring.expenses || []).filter(function (e) {
+      return e && e.kind === "insurance";
+    });
+    let sumRMB = 0;
+    expenses.forEach(function (e) {
+      let val = 0;
+      if (e.cashValueSchedule) {
+        val = resolveCashValueForYear(e.cashValueSchedule, year);
+      } else if (e.cashValueRMB != null && e.cashValueRMB > 0) {
+        // legacy：cashValueRMB 字面意思是 RMB，直接当 RMB 用
+        val = Number(e.cashValueRMB) || 0;
+        sumRMB += val;
+        return;
+      }
+      if (!val) return;
+      const ccy = e.ccy || "RMB";
+      const rate = ccy === "RMB" ? 1 : (rates[ccy] || 1);
+      sumRMB += val * rate;
+    });
+    if (sumRMB > 0) {
+      snap.holdings.insurance_cashvalue = { raw: sumRMB, ccy: "RMB", _derived: true };
+    }
+  }
+
   // ========== 资产 vs 现金流对账 ==========
   // 返回上次到这次的总盘变化 = 注入 + 真实回报
   function reconcile(prevSnap, curSnap) {
@@ -382,5 +438,7 @@ window.AssetCore = (function () {
     reconcile: reconcile,
     runAssertions: runAssertions,
     getDataPath: getDataPath,
+    resolveCashValueForYear: resolveCashValueForYear,
+    injectInsuranceCashValue: injectInsuranceCashValue,
   };
 })();
