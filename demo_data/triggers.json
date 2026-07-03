@@ -1,0 +1,272 @@
+[
+  {
+    "id": "n1",
+    "tier": "长周期宏观",
+    "title": "新生儿人口断崖",
+    "logic": "人口决定一切国内资产的长期内在需求",
+    "triggers": [
+      {
+        "level": "yellow",
+        "condition": "年度出生人口 < 700 万",
+        "action": "停止增配国内A股权益资产，进入纯防守收息"
+      },
+      {
+        "level": "red",
+        "condition": "年度出生人口 < 500 万",
+        "action": "跨境理财通300万到期本息锁定离岸，绝对禁止结汇回流"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n2",
+    "tier": "长周期宏观",
+    "title": "M2 隐性大放水",
+    "logic": "M2增速−GDP增速=法币真实稀释率",
+    "triggers": [
+      {
+        "level": "red",
+        "condition": "M2−GDP差值连续两年 > 5%",
+        "action": "72小时内将518880/IAU至少1/3卖出换实物金条"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n3",
+    "tier": "长周期宏观",
+    "title": "核心城区租售比倒挂",
+    "logic": "持有成本>租金收入=失血资产",
+    "triggers": [
+      {
+        "level": "red",
+        "condition": "实收租金−物业维修−房产税<0",
+        "action": "绝不卖房。用防御现金池利息补贴持有税差额"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n4",
+    "tier": "中周期网格",
+    "title": "VOO 离岸主引擎建仓",
+    "logic": "前高 $699 · 只在大盘系统性回撤时买入",
+    "triggers": [
+      {
+        "level": "info",
+        "condition": "$594 (-15%)",
+        "action": "动用1/3额度市价买入"
+      },
+      {
+        "level": "info",
+        "condition": "$559 (-20%)",
+        "action": "动用1/3额度市价买入"
+      },
+      {
+        "level": "info",
+        "condition": "$524 (-25%)",
+        "action": "动用最后1/3额度市价买入"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n5",
+    "tier": "中周期网格",
+    "title": "QQQM 离岸卫星建仓",
+    "logic": "前高 $307 · -20%/-30%/-40%机械执行",
+    "triggers": [
+      {
+        "level": "info",
+        "condition": "$245 (-20%)",
+        "action": "动用1/3额度市价买入"
+      },
+      {
+        "level": "info",
+        "condition": "$214 (-30%)",
+        "action": "动用1/3额度市价买入"
+      },
+      {
+        "level": "info",
+        "condition": "$184 (-40%)",
+        "action": "动用最后1/3额度市价买入"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n6",
+    "tier": "中周期网格",
+    "title": "518880 黄金防线建仓",
+    "logic": "前高 ¥11.977 · 高息流动性绞杀暴跌=捡筹码",
+    "triggers": [
+      {
+        "level": "info",
+        "condition": "¥8.290 (-30.7%)",
+        "action": "已打出第一发子弹·示例持仓"
+      },
+      {
+        "level": "info",
+        "condition": "¥7.785 (-35%)",
+        "action": "打出第二发子弹"
+      },
+      {
+        "level": "info",
+        "condition": "¥7.186 (-40%)",
+        "action": "打出最后一发子弹，总占比达13%后锁死"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n7",
+    "tier": "中周期网格",
+    "title": "腾讯0700.HK红线防膨胀",
+    "logic": "单票风险无法对冲·占比>5.5%强制削回5.0%",
+    "triggers": [
+      {
+        "level": "red",
+        "condition": "腾讯总市值/总资产>5.5%",
+        "action": "次日开盘市价卖出超额部分，所得转入货基吃息"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n8",
+    "tier": "极端尾部风险",
+    "title": "VIX 恐慌收割",
+    "logic": "华尔街爆仓时才是卖Put的真正窗口",
+    "triggers": [
+      {
+        "level": "warn",
+        "condition": "VIX > 30",
+        "action": "对VOO卖出当前价−15%~−20%的Cash-Secured Put"
+      },
+      {
+        "level": "red",
+        "condition": "VIX > 40（史诗级崩盘）",
+        "action": "动用50%留存美元现金，对VOO卖出−25%~−30%深度虚值Put"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n9",
+    "tier": "合规与税务",
+    "title": "离岸身份到期倒计时",
+    "logic": "[DEMO] 离岸税务身份是避遗产税+建离岸防火墙的通行证",
+    "triggers": [
+      {
+        "level": "red",
+        "condition": "距身份到期/续签失败≤6个月",
+        "action": "1.打通IBKR 2.ACATS转移富途资产 3.平仓VOO换仓CSPX/VUAA"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n10",
+    "tier": "美元化债路径",
+    "title": "金融压抑·通胀税",
+    "logic": "Fed默许通胀3-4%+利率2-3%=实际负利率",
+    "triggers": [
+      {
+        "level": "warn",
+        "condition": "货基/短债利息跌至2%以下",
+        "action": "绝不为追高息去买垃圾债。现金池安全是必须支付的代价"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n11",
+    "tier": "美元化债路径",
+    "title": "新一轮QE·印钞放水",
+    "logic": "Fed重启印钞机买国债，美元走弱",
+    "triggers": [
+      {
+        "level": "warn",
+        "condition": "Fed重启大规模QE",
+        "action": "死死抱住VOO/CSPX，绝对禁止过早止盈"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n12",
+    "tier": "美元化债路径",
+    "title": "AI科技做大分母",
+    "logic": "AGI/SpaceX/核聚变带来GDP分母狂飙",
+    "triggers": [
+      {
+        "level": "info",
+        "condition": "纳指/标普科技利润持续暴增",
+        "action": "VOO/QQQM已是自动做多美国科技的永续机器，严禁右侧追高"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n13",
+    "tier": "美元化债路径",
+    "title": "化债失败·崩盘",
+    "logic": "美债违约/流动性危机，全球无差别暴跌",
+    "triggers": [
+      {
+        "level": "red",
+        "condition": "VIX>40+美债收益率失控",
+        "action": "防御现金池+VIX Sell Put化身绞肉机，捡带血筹码"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n14",
+    "tier": "美元化债路径",
+    "title": "跨境理财通300万救生通道",
+    "logic": "不是理财，是合法穿透资本管制的离岸自由流动权",
+    "triggers": [
+      {
+        "level": "red",
+        "condition": "[DEMO] 核心房产售出款到账→立即填满300万额度",
+        "action": "一分钱额度不浪费。利率崩盘时接受利息归零，切换美元国债基金吃资本利得"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  },
+  {
+    "id": "n15",
+    "tier": "美元化债路径",
+    "title": "Fed资产负债表·印钞监控",
+    "logic": "Fed Total Assets=全球美元流动性的物理开关，H.4.1周度报告",
+    "triggers": [
+      {
+        "level": "warn",
+        "condition": "单月环比暴增>$3,000亿",
+        "action": "QE开启。强制锁死VOO/QQQM卖出按钮，禁止止盈"
+      },
+      {
+        "level": "red",
+        "condition": "单月环比暴增>$5,000亿",
+        "action": "美元信用透支。检查13%黄金+515450是否满仓"
+      }
+    ],
+    "current": "[切到私有数据源查看实时状态]",
+    "status": "ok"
+  }
+]

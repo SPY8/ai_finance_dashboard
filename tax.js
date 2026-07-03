@@ -6,6 +6,7 @@
   const C = window.AssetCore;
   const $  = (s, r=document) => r.querySelector(s);
   const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
+  const h = C.escapeHTML, a = C.escapeAttr;
 
   // ========== 税务规则库 ==========
   const TaxRules = {
@@ -224,8 +225,8 @@
   // ========== 主渲染函数 ==========
   function renderTaxTab() {
     Promise.all([
-      fetch(C.getDataPath("history.json"), {cache:"no-store"}).then(r => r.json()),
-      fetch(C.getDataPath("target.json"), {cache:"no-store"}).then(r => r.json())
+      C.fetchJson("history.json"),
+      C.fetchJson("target.json")
     ]).then(([hist, target]) => {
       const snaps = (hist.snapshots || []).slice().sort((a,b) => a.date.localeCompare(b.date));
       if (snaps.length === 0) {
@@ -355,7 +356,7 @@
         positionsHTML += `
           <div class="lia-card" style="margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-              <h3 style="margin:0;font-size:13px;color:var(--text-1)">${result.account}</h3>
+              <h3 style="margin:0;font-size:13px;color:var(--text-1)">${h(result.account)}</h3>
               <span style="font-size:11px;color:var(--text-2)">预估年股息税: <b style="color:var(--warn)">${fmtK(result.dividendTax)}</b></span>
             </div>
             <table class="lia-table">
@@ -372,7 +373,7 @@
                 ${result.positions.map(pos => `
                   <tr>
                     <td>
-                      <b>${pos.name}</b>
+                      <b>${h(pos.name)}</b>
                       ${pos.shares ? `<div style="font-size:11px;color:var(--text-2)">${fmt(pos.shares)} 股</div>` : ''}
                     </td>
                     <td class="r">${fmtK(pos.value)}</td>
@@ -403,7 +404,7 @@
       $("#tax-content").innerHTML = rulesHTML + positionsHTML + suggestionsHTML;
 
     }).catch(err => {
-      $("#tax-kpis").innerHTML = `<div style="padding:24px;color:var(--text-1)">加载失败：${err.message}</div>`;
+      $("#tax-kpis").innerHTML = `<div style="padding:24px;color:var(--text-1)">加载失败：${h(err.message)}</div>`;
       console.error(err);
     });
   }

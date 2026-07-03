@@ -5,8 +5,16 @@
 (function () {
   'use strict';
 
+  const C = window.AssetCore;
+  const h = C.escapeHTML;
+  const a = C.escapeAttr;
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+  function safeColor(value, fallback) {
+    const v = String(value == null ? "" : value).trim();
+    return /^(#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)|hsla?\([^)]+\)|var\(--[\w-]+\))$/.test(v) ? v : fallback;
+  }
 
   let risksData = null;
   let arsenalData = null;
@@ -16,13 +24,83 @@
   function loadData() {
     if (risksData && arsenalData) return Promise.resolve({ risks: risksData, arsenal: arsenalData });
     return Promise.all([
-      fetch(window.AssetCore.getDataPath("risks.json"), { cache: "no-store" }).then(r => r.json()).catch(() => ({ dimensions: [], risks: [] })),
-      fetch(window.AssetCore.getDataPath("policies.json"), { cache: "no-store" }).then(r => r.json()).catch(() => [])
+      window.AssetCore.fetchJson("risks.json", { url: window.AssetCore.getDataPath("risks.json") + "?t=" + Date.now(), fallback: { dimensions: [], risks: [] } }),
+      window.AssetCore.fetchJson("policies.json", { url: window.AssetCore.getDataPath("policies.json") + "?t=" + Date.now(), fallback: [] })
     ]).then(([risks, arsenal]) => {
       risksData = risks;
       arsenalData = arsenal;
       return { risks, arsenal };
     });
+  }
+
+  function renderSellPuts() {
+    fetch(window.AssetCore.getDataPath("sell_puts.json") + "?t=" + Date.now(), { cache: "no-store" })
+      .then(r => r.json()).then(puts => {
+        const active = puts.filter(p => p.status === "active");
+        if (active.length === 0) {
+          document.getElementById("sell-puts-view").innerHTML = '<div style="color:var(--text-2);font-size:12px">暂无活跃 Sell Put 持仓</div>';
+          return;
+        }
+
+        const today = new Date();
+        const rows = active.map(p => {
+          const expiry = new Date(p.expiration);
+          const daysLeft = Math.max(0, Math.ceil((expiry - today) / 86400000));
+          const premiumTotal = (p.premium * p.quantity * 100).toFixed(0);
+          const obligation = (p.strike * p.quantity * 100).toFixed(0);
+          const urgency = daysLeft <= 7 ? 'danger' : (daysLeft <= 14 ? 'warn' : 'ok');
+          return `
+            <div style="background:var(--bg-1);border:1px solid var(--line);border-left:3px solid var(--${urgency === 'ok' ? 'ok' : urgency === 'warn' ? 'warn' : 'danger'});border-radius:6px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;gap:14px;font-size:12px">
+              <div style="font-weight:600;min-width:60px">${p.ticker}</div>
+              <div style="color:var(--text-2)">行权 <b style="color:var(--text-0);font-family:'JetBrains Mono',monospace">$${p.strike}</b></div>
+              <div style="color:var(--text-2)">到期 <b style="color:var(--text-0);font-family:'JetBrains Mono',monospace">${p.expiration}</b></div>
+              <div style="color:var(--${urgency})">还剩 <b style="font-family:'JetBrains Mono',monospace">${daysLeft} 天</b></div>
+              <div style="color:var(--ok);font-family:'JetBrains Mono',monospace">权利金 +$${premiumTotal}</div>
+              <div style="color:var(--text-2);font-family:'JetBrains Mono',monospace;margin-left:auto">或有接盘 $${Number(obligation).toLocaleString()}</div>
+            </div>
+          `;
+        }).join("");
+
+        const totalPremium = active.reduce((a, p) => a + p.premium * p.quantity * 100, 0);
+        const totalObligation = active.reduce((a, p) => a + p.strike * p.quantity * 100, 0);
+        document.getElementById("sell-puts-view").innerHTML = `
+          ${rows}
+          <div style="display:flex;gap:20px;margin-top:8px;font-size:11px;color:var(--text-2)">
+            <span>💰 已收权利金合计 <b style="color:var(--ok);font-family:'JetBrains Mono',monospace">$${totalPremium.toFixed(0)}</b></span>
+            <span>⚠️ 最大接盘义务 <b style="color:var(--warn);font-family:'JetBrains Mono',monospace">$${totalObligation.toLocaleString()}</b></span>
+          </div>
+        `;
+      }).catch(() => {
+        document.getElementById("sell-puts-view").innerHTML = '<div style="color:var(--text-2);font-size:12px">加载失败</div>';
+      });
+  }
+
+  function renderTriggers() {
+    fetch(window.AssetCore.getDataPath("triggers.json") + "?t=" + Date.now(), { cache: "no-store" })
+      .then(r => r.json()).then(triggers => {
+        const tiers = ["长周期宏观", "中周期网格", "极端尾部风险", "合规与税务", "美元化债路径"];
+        const colors = { red: "var(--danger)", warn: "var(--warn)", ok: "var(--ok)", info: "var(--accent)" };
+        const html = tiers.map(tier => {
+          const items = triggers.filter(t => t.tier === tier);
+          if (!items.length) return "";
+          const cards = items.map(t => {
+            const statusColor = colors[t.status] || "var(--text-2)";
+            const triggersHTML = t.triggers.map(tr => `<div style="padding:3px 0;font-size:11px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${colors[tr.level]};margin-right:6px"></span><b style="color:${colors[tr.level]}">${tr.level === 'red' ? '红灯' : tr.level === 'warn' ? '黄灯' : tr.level === 'info' ? '网格' : 'OK'}:</b> ${tr.condition} → <span style="color:var(--text-1)">${tr.action}</span></div>`).join("");
+            return `<div style="background:var(--bg-1);border:1px solid var(--line);border-left:3px solid ${statusColor};border-radius:8px;padding:12px 14px;margin-bottom:6px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
+                <div style="font-size:14px;font-weight:600">${t.title}</div>
+                <div style="font-size:10px;color:${statusColor};font-family:'JetBrains Mono',monospace">${t.current}</div>
+              </div>
+              <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">${t.logic}</div>
+              ${triggersHTML}
+            </div>`;
+          }).join("");
+          return `<div style="margin-bottom:16px"><div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px">${tier}</div>${cards}</div>`;
+        }).filter(Boolean).join("");
+        document.getElementById("triggers-view").innerHTML = html;
+      }).catch(() => {
+        document.getElementById("triggers-view").innerHTML = '<div style="color:var(--text-2);font-size:12px">加载失败</div>';
+      });
   }
 
   window.renderRiskPolicyTab = function() {
@@ -31,13 +109,15 @@
     loadData().then(({ risks, arsenal }) => {
       renderKPIs(risks, arsenal);
       renderLayout(risks, arsenal);
+      renderSellPuts();
+      renderTriggers();
       bindEvents();
       
       $("#risk-content").dataset.loaded = "true";
       hasRendered = true;
     }).catch(err => {
       console.error("Risk Policy Tab 加载失败:", err);
-      $("#risk-content").innerHTML = `<div style="padding:40px;color:var(--danger)">加载失败: ${err.message}</div>`;
+      $("#risk-content").innerHTML = `<div style="padding:40px;color:var(--danger)">加载失败: ${h(err.message)}</div>`;
     });
   };
 
@@ -78,8 +158,15 @@
   }
 
   function renderLayout(risks, arsenal) {
-    // 按类别分组
-    const categories = [...new Set(arsenal.map(a => a.category))];
+    // 按类别分组，新工具排前面
+    const CATEGORY_ORDER = ["衍生品策略", "出海工具", "防御工具", "权益标的", "观察清单 (未持有)", "宏观政策"];
+    const normCat = (c) => String(c == null ? "" : c).trim().replace(/\s+/g, " ");
+    const items = (arsenal || []).map(a => Object.assign({}, a, { _category: normCat(a.category) || "未分类" }));
+    const categories = Array.from(new Set(CATEGORY_ORDER.map(normCat).concat(items.map(a => a._category))));
+    categories.sort((a, b) => {
+      const ia = CATEGORY_ORDER.indexOf(a), ib = CATEGORY_ORDER.indexOf(b);
+      return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+    });
     
     const html = `
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
@@ -91,17 +178,23 @@
           <!-- 筛选器 -->
           <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" id="arsenal-filters">
             <button class="btn primary filter-btn active" data-cat="all">全部展示</button>
-            ${categories.map(cat => `<button class="btn filter-btn" data-cat="${cat}">${cat}</button>`).join('')}
+            ${categories.map(cat => `<button class="btn filter-btn" data-cat="${a(cat)}">${h(cat)}</button>`).join('')}
           </div>
 
           <div id="arsenal-list" style="display:flex;flex-direction:column;gap:16px">
             ${categories.map(cat => `
-              <div class="arsenal-group" data-cat="${cat}">
+              <div class="arsenal-group" data-cat="${a(cat)}">
                 <div class="group-header" style="font-size:12px;color:var(--text-3);font-weight:600;margin-bottom:8px;letter-spacing:0.5px;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;gap:6px;user-select:none">
-                  <span class="toggle-icon" style="transition:transform 0.2s">▼</span> ${cat}
+                  <span class="toggle-icon" style="transition:transform 0.2s">▼</span> ${h(cat)}
                 </div>
                 <div class="group-content" style="display:flex;flex-direction:column;gap:12px;transition:max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;overflow:hidden;opacity:1">
-                  ${arsenal.filter(a => a.category === cat).map(a => renderArsenalCard(a)).join('')}
+                  ${(() => {
+                    const groupItems = items.filter(a => a._category === cat);
+                    if (groupItems.length === 0) {
+                      return `<div style="color:var(--text-3);font-size:12px;padding:8px 10px;background:var(--bg-0);border:1px dashed var(--line);border-radius:6px">暂无条目</div>`;
+                    }
+                    return groupItems.map(a => renderArsenalCard(a)).join('');
+                  })()}
                 </div>
               </div>
             `).join('')}
@@ -125,32 +218,32 @@
     const accentColor = isTool ? 'var(--ok)' : 'var(--accent)';
     
     return `
-      <div class="lia-card arsenal-card" data-id="${item.id}" data-mitigates="${(item.mitigates||[]).join(',')}" data-introduces="${(item.introduces||[]).join(',')}" style="cursor:pointer;transition:all 0.2s;border-left:3px solid ${accentColor};padding:14px 16px">
+      <div class="lia-card arsenal-card" data-id="${a(item.id)}" data-mitigates="${a((item.mitigates||[]).join(','))}" data-introduces="${a((item.introduces||[]).join(','))}" style="cursor:pointer;transition:all 0.2s;border-left:3px solid ${accentColor};padding:14px 16px">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
           <div>
-            <div style="font-size:14px;font-weight:600;color:var(--text-0);margin-bottom:4px">${item.title}</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text-0);margin-bottom:4px">${h(item.title)}</div>
             <div style="display:flex;gap:6px;flex-wrap:wrap">
-              ${(item.tags||[]).map(t => `<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--bg-2);color:var(--text-2);border:1px solid var(--line)">${t}</span>`).join('')}
+              ${(item.tags||[]).map(t => `<span style="font-size:10px;padding:1px 6px;border-radius:4px;background:var(--bg-2);color:var(--text-2);border:1px solid var(--line)">${h(t)}</span>`).join('')}
             </div>
           </div>
-          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-3)">${item.date}</div>
+          <div style="font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--text-3)">${h(item.date)}</div>
         </div>
         
         <div style="font-size:12px;color:var(--text-0);margin-bottom:10px;background:var(--bg-2);padding:6px 10px;border-radius:4px;border-left:2px solid var(--text-3)">
-          <b style="color:var(--text-1)">本质：</b>${item.essence}
+          <b style="color:var(--text-1)">本质：</b>${h(item.essence)}
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px;font-size:11px;line-height:1.5">
           <div>
             <div style="color:var(--ok);font-weight:600;margin-bottom:2px">🟢 优势 / 机会</div>
             <ul style="margin:0;padding-left:14px;color:var(--text-1)">
-              ${(item.pros||[]).map(p => `<li>${p}</li>`).join('')}
+              ${(item.pros||[]).map(p => `<li>${h(p)}</li>`).join('')}
             </ul>
           </div>
           <div>
             <div style="color:var(--danger);font-weight:600;margin-bottom:2px">🔴 劣势 / 代价</div>
             <ul style="margin:0;padding-left:14px;color:var(--text-2)">
-              ${(item.cons||[]).map(c => `<li>${c}</li>`).join('')}
+              ${(item.cons||[]).map(c => `<li>${h(c)}</li>`).join('')}
             </ul>
           </div>
         </div>
@@ -159,7 +252,7 @@
           <div style="font-size:11px;color:var(--accent);margin-top:8px;padding-top:8px;border-top:1px dashed var(--line)">
             <div style="font-weight:600;margin-bottom:4px">⚡ 实操纪律：</div>
             <ul style="margin:0;padding-left:14px;line-height:1.6">
-              ${item.rules.map(r => `<li>${r}</li>`).join('')}
+              ${item.rules.map(r => `<li>${h(r)}</li>`).join('')}
             </ul>
           </div>
         ` : ''}
@@ -173,18 +266,18 @@
 
     return `
       <div class="risk-dim" style="background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);overflow:visible;flex-shrink:0">
-        <div style="background:var(--bg-2);padding:8px 14px;font-size:12px;font-weight:600;color:${dim.color};border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px">
-          <div style="width:8px;height:8px;border-radius:50%;background:${dim.color}"></div>
-          ${dim.name}
+        <div style="background:var(--bg-2);padding:8px 14px;font-size:12px;font-weight:600;color:${safeColor(dim.color, 'var(--accent)')};border-bottom:1px solid var(--line);display:flex;align-items:center;gap:8px">
+          <div style="width:8px;height:8px;border-radius:50%;background:${safeColor(dim.color, 'var(--accent)')}"></div>
+          ${h(dim.name)}
         </div>
         <div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">
           ${dimRisks.map(r => `
-            <div class="risk-node" id="risk-${r.id}" style="padding:8px 12px;background:var(--bg-0);border:1px solid var(--line);border-radius:6px;transition:all 0.3s ease">
+            <div class="risk-node" id="risk-${a(r.id)}" style="padding:8px 12px;background:var(--bg-0);border:1px solid var(--line);border-radius:6px;transition:all 0.3s ease">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-                <div style="font-size:13px;font-weight:500;color:var(--text-0)">${r.title}</div>
-                <div style="font-size:10px;color:var(--text-3);background:var(--bg-2);padding:1px 6px;border-radius:3px">${r.keyword}</div>
+                <div style="font-size:13px;font-weight:500;color:var(--text-0)">${h(r.title)}</div>
+                <div style="font-size:10px;color:var(--text-3);background:var(--bg-2);padding:1px 6px;border-radius:3px">${h(r.keyword)}</div>
               </div>
-              <div style="font-size:11px;color:var(--text-2);line-height:1.5">${r.description}</div>
+              <div style="font-size:11px;color:var(--text-2);line-height:1.5">${h(r.description)}</div>
               <div class="risk-badge" style="display:none;font-size:10px;font-weight:600;margin-top:6px;padding:2px 6px;border-radius:4px;width:fit-content"></div>
             </div>
           `).join('')}
@@ -290,6 +383,27 @@
 
         activeArsenalId = id;
 
+        // 先恢复全部左侧卡片（撤销右边风险造成的过滤）
+        arsenalCards.forEach(c => {
+          c.style.opacity = '1';
+          c.style.display = '';
+        });
+        arsenalGroups.forEach(g => { g.style.display = ''; });
+
+        // 取消右侧风险节点的选中状态
+        activeRiskId = null;
+        riskNodes.forEach(r => {
+          r.style.display = 'block';
+          r.style.opacity = '1';
+          r.style.background = 'var(--bg-0)';
+          r.style.borderColor = 'var(--line)';
+          r.style.boxShadow = 'none';
+          r.style.transform = 'scale(1)';
+          const badge = r.querySelector('.risk-badge');
+          if(badge) badge.style.display = 'none';
+        });
+        riskDims.forEach(d => { d.style.display = 'block'; });
+
         // Highlight selected arsenal card
         arsenalCards.forEach(c => {
           if (c.dataset.id === id) {
@@ -350,6 +464,106 @@
         });
       });
     });
+
+    // === 反向交互：点击风险节点 → 过滤左侧工具（双向可选）===
+    let activeRiskId = null;
+    riskNodes.forEach(node => {
+      node.style.cursor = 'pointer';
+      node.addEventListener('click', () => {
+        const riskId = node.id.replace('risk-', '');
+
+        // Toggle off if already active
+        if (activeRiskId === riskId) {
+          activeRiskId = null;
+          riskNodes.forEach(r => {
+            r.style.background = 'var(--bg-0)';
+            r.style.borderColor = 'var(--line)';
+            r.style.transform = 'scale(1)';
+            const badge = r.querySelector('.risk-badge');
+            if(badge) badge.style.display = 'none';
+          });
+          arsenalCards.forEach(c => {
+            c.style.opacity = '1';
+            c.style.display = '';
+          });
+          arsenalGroups.forEach(g => { g.style.display = ''; });
+          return;
+        }
+
+        activeRiskId = riskId;
+
+        // 先全部恢复右侧图谱（撤销左边工具造成的隐藏）
+        riskNodes.forEach(r => {
+          r.style.display = 'block';
+          r.style.opacity = '1';
+          r.style.background = 'var(--bg-0)';
+          r.style.borderColor = 'var(--line)';
+          r.style.boxShadow = 'none';
+          r.style.transform = 'scale(1)';
+          const badge = r.querySelector('.risk-badge');
+          if (badge) badge.style.display = 'none';
+        });
+        riskDims.forEach(d => { d.style.display = 'block'; });
+
+        // 恢复左侧工具卡片
+        activeArsenalId = null;
+        arsenalCards.forEach(c => {
+          c.style.background = 'var(--bg-1)';
+          c.style.borderColor = 'var(--line)';
+          c.style.opacity = '1';
+          c.style.display = '';
+        });
+        arsenalGroups.forEach(g => { g.style.display = ''; });
+
+        // 高亮当前风险节点
+        riskNodes.forEach(r => {
+          if (r.id === 'risk-' + riskId) {
+            r.style.background = 'rgba(122,130,255,0.1)';
+            r.style.borderColor = 'var(--accent)';
+            r.style.transform = 'scale(1.02)';
+            const badge = r.querySelector('.risk-badge');
+            if(badge) {
+              badge.textContent = '🔍 对应工具已筛选';
+              badge.style.color = 'var(--accent)';
+              badge.style.background = 'rgba(122,162,255,0.15)';
+              badge.style.display = 'block';
+            }
+          } else {
+            r.style.background = 'var(--bg-0)';
+            r.style.borderColor = 'var(--line)';
+            r.style.transform = 'scale(1)';
+            const badge = r.querySelector('.risk-badge');
+            if(badge) badge.style.display = 'none';
+          }
+        });
+
+        // 过滤左侧工具：只显示关联此风险的工具
+        const relatedArsenalIds = new Set();
+        arsenalData.forEach(a => {
+          const mitigates = (a.mitigates || []);
+          const introduces = (a.introduces || []);
+          if (mitigates.includes(riskId) || introduces.includes(riskId)) {
+            relatedArsenalIds.add(a.id);
+          }
+        });
+
+        arsenalCards.forEach(c => {
+          if (relatedArsenalIds.has(c.dataset.id)) {
+            c.style.opacity = '1';
+            c.style.display = '';
+          } else {
+            c.style.display = 'none';
+          }
+        });
+
+        // 隐藏空分组
+        arsenalGroups.forEach(g => {
+          const visibleCards = Array.from(g.querySelectorAll('.arsenal-card')).filter(c => c.style.display !== 'none');
+          g.style.display = visibleCards.length > 0 ? '' : 'none';
+        });
+      });
+    });
+
     // 窗口调整大小时，重新计算展开组的 max-height，防止响应式文字折行导致被截断
     window.addEventListener('resize', () => {
       $$('.group-content').forEach(content => {

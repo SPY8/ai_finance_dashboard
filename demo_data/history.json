@@ -58,7 +58,7 @@
         "us_treasury": {
           "raw": 1000
         },
-        "qianhai_property": {
+        "property_a": {
           "raw": 1000000
         },
         "voo": {
@@ -159,7 +159,7 @@
         "us_treasury": {
           "raw": 1500
         },
-        "qianhai_property": {
+        "property_a": {
           "raw": 1050000
         },
         "voo": {
@@ -260,7 +260,7 @@
         "us_treasury": {
           "raw": 2000
         },
-        "qianhai_property": {
+        "property_a": {
           "raw": 1080000
         },
         "voo": {
@@ -361,7 +361,7 @@
         "us_treasury": {
           "raw": 2000
         },
-        "qianhai_property": {
+        "property_a": {
           "raw": 1100000
         },
         "voo": {

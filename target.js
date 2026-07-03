@@ -7,6 +7,7 @@
 
   const C = window.AssetCore;
   const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
+  const h = C.escapeHTML, a = C.escapeAttr;
   const $ = (s, r = document) => r.querySelector(s);
 
   let targetData = null;
@@ -23,7 +24,7 @@
     };
     const c = map[phase];
     if (!c) return "";
-    return `<span style="font-size:10px;padding:1px 6px;border-radius:4px;color:${c.color};background:${c.bg};letter-spacing:.3px">${c.txt}</span>`;
+    return `<span style="font-size:10px;padding:1px 6px;border-radius:4px;color:${c.color};background:${c.bg};letter-spacing:.3px">${h(c.txt)}</span>`;
   }
 
   // ---- 状态芯片 ----
@@ -35,15 +36,15 @@
       info: { bg: 'rgba(122,162,255,.12)', color: 'var(--accent)' }
     };
     const c = colors[status] || colors.info;
-    return `<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${c.bg};color:${c.color};font-weight:500">${text}</span>`;
+    return `<span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${c.bg};color:${c.color};font-weight:500">${h(text)}</span>`;
   }
 
   // ---- 加载数据 ----
   function loadData() {
     if (targetData && historyData) return Promise.resolve({ target: targetData, history: historyData });
     return Promise.all([
-      fetch(window.AssetCore.getDataPath("target.json"), { cache: "no-store" }).then(r => r.json()),
-      fetch(window.AssetCore.getDataPath("history.json"), { cache: "no-store" }).then(r => r.json()).catch(() => ({ snapshots: [] }))
+      window.AssetCore.fetchJson("target.json"),
+      window.AssetCore.fetchJson("history.json", { fallback: { snapshots: [] } })
     ]).then(([target, history]) => {
       targetData = target;
       historyData = history;
@@ -63,14 +64,14 @@
       renderRebalanceRules(target);
       renderAssumptions(target);
       renderModulesMatrix(target);
-      renderMilestones(target);
+      // renderMilestones(target); // Removed to avoid duplicate milestones
       renderChangelog(target);
 
       $("#target-content").dataset.loaded = "true";
       hasRendered = true;
     }).catch(err => {
       console.error("Target Tab 加载失败:", err);
-      $("#target-content").innerHTML = `<div style="padding:40px;color:var(--danger)">加载失败: ${err.message}</div>`;
+      $("#target-content").innerHTML = `<div style="padding:40px;color:var(--danger)">加载失败: ${h(err.message)}</div>`;
     });
   }
 
@@ -109,10 +110,9 @@
       {
         label: "里程碑进度",
         value: (() => {
-          const ms = target.milestones || [];
-          if (!ms.length) return "—";
-          const done = ms.filter(m => m.done).length;
-          return `${done}/${ms.length}`;
+          const stats = C.getMilestoneStats(target.milestones);
+          if (!stats.total) return "—";
+          return `${stats.done}/${stats.total}`;
         })(),
         sub: "已完成 / 总计",
         help: "target.json 里的 milestones 完成数 / 总数",
@@ -123,9 +123,9 @@
     $("#target-kpis").innerHTML = kpis.map(k => `
       <div class="kpi ${k.tone}">
         <div class="stripe"></div>
-        <div class="label" title="${k.help || ""}">${k.label}</div>
-        <div class="value num" title="${k.help || ""}">${k.value}</div>
-        <div class="sub" title="${k.help || ""}">${k.sub}</div>
+        <div class="label" title="${a(k.help || "")}">${h(k.label)}</div>
+        <div class="value num" title="${a(k.help || "")}">${h(k.value)}</div>
+        <div class="sub" title="${a(k.help || "")}">${h(k.sub)}</div>
       </div>
     `).join("");
   }
@@ -161,7 +161,8 @@
 
     // 渲染饼图
     setTimeout(() => {
-      const pieChart = echarts.init($("#target-pie-chart"), 'dark');
+      const pieChart = echarts.init($("#target-pie-chart"), C.getEchartsTheme());
+      window.AssetCore.registerChart(pieChart);
       pieChart.setOption({
         backgroundColor: 'transparent',
         tooltip: {
@@ -192,7 +193,8 @@
 
       // 计算币种分布
       const ccyData = calculateCurrencyDistribution(target);
-      const ccyChart = echarts.init($("#target-ccy-chart"), 'dark');
+      const ccyChart = echarts.init($("#target-ccy-chart"), C.getEchartsTheme());
+      window.AssetCore.registerChart(ccyChart);
       ccyChart.setOption({
         backgroundColor: 'transparent',
         tooltip: {
@@ -280,9 +282,9 @@
     const pctVal = Math.round(val * 100);
     return `
       <div class="lia-card" style="text-align:center">
-        <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">${label}</div>
+        <div style="font-size:11px;color:var(--text-2);margin-bottom:8px">${h(label)}</div>
         <div style="font-size:32px;font-weight:600;color:var(--text-0);font-family:'JetBrains Mono',monospace">${pctVal}${unit}</div>
-        <div style="font-size:11px;color:var(--text-3);margin-top:4px">${desc}</div>
+        <div style="font-size:11px;color:var(--text-3);margin-top:4px">${h(desc)}</div>
         <div style="margin-top:12px;height:4px;background:var(--bg-3);border-radius:2px;overflow:hidden">
           <div style="width:${pctVal}%;height:100%;background:var(--accent);border-radius:2px"></div>
         </div>
@@ -298,7 +300,7 @@
         <h2>📐 设计哲学<span class="hint">资产配置的核心理念</span></h2>
         <div class="lia-card">
           <ul style="margin:0;padding-left:20px;color:var(--text-1);line-height:1.8">
-            ${philosophy.length ? philosophy.map(p => `<li>${p}</li>`).join('') : '<li style="color:var(--text-3)">未填写设计哲学</li>'}
+            ${philosophy.length ? philosophy.map(p => `<li>${h(p)}</li>`).join('') : '<li style="color:var(--text-3)">未填写设计哲学</li>'}
           </ul>
         </div>
       </section>
@@ -319,19 +321,19 @@
         <div class="rebalance-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
           <div class="lia-card">
             <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">频率</div>
-            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${rb.frequency || '—'}</div>
+            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${h(rb.frequency || '—')}</div>
           </div>
           <div class="lia-card">
             <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">资金来源</div>
-            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${rb.preferNewMoney || '—'}</div>
+            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${h(rb.preferNewMoney || '—')}</div>
           </div>
           <div class="lia-card">
             <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">执行方式</div>
-            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${rb.method || '—'}</div>
+            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${h(rb.method || '—')}</div>
           </div>
           <div class="lia-card">
             <div style="font-size:11px;color:var(--text-3);margin-bottom:4px">池分离</div>
-            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${rb.poolSeparation || '—'}</div>
+            <div style="font-size:16px;font-weight:500;color:var(--text-0)">${h(rb.poolSeparation || '—')}</div>
           </div>
         </div>
       </section>
@@ -366,15 +368,15 @@
         ? statusChip('ok', '已满足')
         : v.value === false
           ? statusChip('warn', '未满足')
-          : statusChip('info', v.value);
+          : statusChip('info', String(v.value));
       return `
                   <tr style="border-bottom:1px solid var(--line)">
                     <td style="padding:10px 12px">
-                      <code style="background:var(--bg-2);padding:2px 8px;border-radius:4px;font-size:11px;color:var(--text-1)">${k}</code>
-                      <div style="font-size:12px;color:var(--text-0);margin-top:4px">${v.label || ''}</div>
+                      <code style="background:var(--bg-2);padding:2px 8px;border-radius:4px;font-size:11px;color:var(--text-1)">${h(k)}</code>
+                      <div style="font-size:12px;color:var(--text-0);margin-top:4px">${h(v.label || '')}</div>
                     </td>
                     <td style="padding:10px 12px;text-align:center">${stateChip}</td>
-                    <td style="padding:10px 12px;font-size:12px;color:var(--text-2)">${v.impact || ''}</td>
+                    <td style="padding:10px 12px;font-size:12px;color:var(--text-2)">${h(v.impact || '')}</td>
                   </tr>
                 `;
     }).join('')}
@@ -417,17 +419,17 @@
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
           <div>
             <div style="font-size:16px;font-weight:600;color:var(--text-0)">
-              <span style="color:var(--text-3);margin-right:6px;font-family:'Noto Serif SC',serif">${m.roman}</span>
-              ${m.name}
+              <span style="color:var(--text-3);margin-right:6px;font-family:'Noto Serif SC',serif">${h(m.roman)}</span>
+              ${h(m.name)}
             </div>
-            ${m.purpose ? `<div style="font-size:12px;color:var(--text-2);margin-top:4px">📌 ${m.purpose}</div>` : ''}
+            ${m.purpose ? `<div style="font-size:12px;color:var(--text-2);margin-top:4px">📌 ${h(m.purpose)}</div>` : ''}
           </div>
           <div style="text-align:right">
             <div style="font-size:24px;font-weight:600;color:var(--accent);font-family:'JetBrains Mono',monospace">${targetPct}%</div>
             <div style="font-size:11px;color:var(--text-3)">±${thresholdPct}%</div>
           </div>
         </div>
-        ${m.rationale ? `<div style="font-size:12px;color:var(--text-2);margin-bottom:12px;padding:8px;background:var(--bg-2);border-radius:6px">${m.rationale}</div>` : ''}
+        ${m.rationale ? `<div style="font-size:12px;color:var(--text-2);margin-bottom:12px;padding:8px;background:var(--bg-2);border-radius:6px">${h(m.rationale)}</div>` : ''}
         <table style="width:100%;font-size:12px;border-collapse:collapse">
           <thead>
             <tr style="border-bottom:1px solid var(--line)">
@@ -442,13 +444,13 @@
               <tr style="border-bottom:1px dashed var(--line)">
                 <td style="padding:8px 0">
                   <span style="font-size:10px;padding:1px 6px;border-radius:3px;background:rgba(91,139,255,.12);color:var(--rmb);margin-right:6px">${s.ccy || 'RMB'}</span>
-                  ${s.name}
+                  ${h(s.name)}
                   ${phaseBadgeHTML(s.phase)}
-                  ${s.venue ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">· ${s.venue}</div>` : ''}
+                  ${s.venue ? `<div style="font-size:11px;color:var(--text-3);margin-top:2px">· ${h(s.venue)}</div>` : ''}
                 </td>
                 <td style="padding:8px 0;text-align:right;font-family:'JetBrains Mono',monospace">${pct(s.subTargetPct || 0, 1)}</td>
                 <td style="padding:8px 0;text-align:right;font-family:'JetBrains Mono',monospace">${s.subThresholdPct ? '±' + pct(s.subThresholdPct, 1) : '—'}</td>
-                <td style="padding:8px 0;padding-left:12px;color:var(--text-2)">${s.note || ''}</td>
+                <td style="padding:8px 0;padding-left:12px;color:var(--text-2)">${h(s.note || '')}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -459,7 +461,9 @@
 
   // ---- 里程碑 ----
   function renderMilestones(target) {
-    const ms = target.milestones || [];
+    const ms = Array.isArray(target.milestones)
+      ? target.milestones
+      : (((target.milestones || {}).items) || []);
     if (!ms.length) return;
 
     const html = `
@@ -470,12 +474,12 @@
             <div class="lia-card" style="display:flex;align-items:center;gap:16px;padding:12px 16px;margin-bottom:8px;opacity:${m.done ? 0.7 : 1}">
               <div style="font-size:24px">${m.done ? '✅' : '⬜'}</div>
               <div style="flex:1">
-                <div style="font-size:14px;font-weight:500;color:var(--text-0);text-decoration:${m.done ? 'line-through' : 'none'}">${m.name}</div>
-                <div style="font-size:12px;color:var(--text-2);margin-top:2px">${m.note || ''}</div>
+                <div style="font-size:14px;font-weight:500;color:var(--text-0);text-decoration:${m.done ? 'line-through' : 'none'}">${h(m.name)}</div>
+                <div style="font-size:12px;color:var(--text-2);margin-top:2px">${h(m.note || '')}</div>
               </div>
               <div style="text-align:right">
-                ${m.targetDate ? `<div style="font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace">${m.targetDate}</div>` : ''}
-                ${m.priority ? `<div style="font-size:11px;color:var(--accent);margin-top:4px">${m.priority}</div>` : ''}
+                ${m.targetDate ? `<div style="font-size:12px;color:var(--text-3);font-family:'JetBrains Mono',monospace">${h(m.targetDate)}</div>` : ''}
+                ${m.priority ? `<div style="font-size:11px;color:var(--accent);margin-top:4px">${h(m.priority)}</div>` : ''}
               </div>
             </div>
           `).join('')}
@@ -500,11 +504,11 @@
           ${cl.map(c => `
             <div class="lia-card" style="margin-bottom:8px">
               <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px">
-                <span style="font-size:14px;font-weight:600;color:var(--accent);font-family:'JetBrains Mono',monospace">${c.version}</span>
-                <span style="font-size:12px;color:var(--text-3)">${c.date}</span>
+                <span style="font-size:14px;font-weight:600;color:var(--accent);font-family:'JetBrains Mono',monospace">${h(c.version)}</span>
+                <span style="font-size:12px;color:var(--text-3)">${h(c.date)}</span>
               </div>
               <ul style="margin:0;padding-left:18px;color:var(--text-1);font-size:12px;line-height:1.6">
-                ${(c.changes || []).map(chg => `<li>${chg}</li>`).join('')}
+                ${(c.changes || []).map(chg => `<li>${h(chg)}</li>`).join('')}
               </ul>
             </div>
           `).join('')}
@@ -514,7 +518,8 @@
 
     const container = document.createElement('div');
     container.innerHTML = html;
-    $("#target-content").appendChild(container);
+    const targetEl = $("#target-changelog-container") || $("#target-content");
+    targetEl.appendChild(container);
   }
 
   // ---- 暴露全局函数 ----

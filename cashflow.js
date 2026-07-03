@@ -9,11 +9,11 @@
   const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
 
   Promise.all([
-    fetch(C.getDataPath("transactions/index.json"), {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("categories.json"),         {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("recurring.json"),          {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("history.json"),            {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("income_events.json"),      {cache:"no-store"}).then(r => r.json()).catch(() => ({events:[]})),
+    C.fetchJson("transactions/index.json"),
+    C.fetchJson("categories.json"),
+    C.fetchJson("recurring.json"),
+    C.fetchJson("history.json"),
+    C.fetchJson("income_events.json", { fallback: { events: [] } }),
   ]).then(async ([txIndex, cats, rec, hist, incEv]) => {
     const years = (txIndex.years || []).slice().sort();
     if (years.length === 0) {
@@ -26,7 +26,7 @@
     const toRMB = (amt, ccy) => amt * (ccy === "RMB" ? 1 : (rates[ccy] || 1));
 
     const allYearData = await Promise.all(years.map(y =>
-      fetch(C.getDataPath(`transactions/yearly/${y}.json`), {cache:"no-store"}).then(r => r.json())
+      C.fetchJson(`transactions/yearly/${y}.json`)
     ));
 
     const picker = $("#month-picker");
@@ -40,17 +40,22 @@
 
       const isPartial = data.status === "partial_with_projection";
       const yearProgress = data.yearProgress || 1;
+      const C = window.AssetCore;
+      const h = C.escapeHTML;
       // 当 partial 时：actual = amount（截止值），projected = projected_annual 或 amount/yearProgress
-      const exps = (data.expenses || []).map(t => {
+      const expsAll = (data.expenses || []).map(t => {
         const rmb = toRMB(t.amount, t.ccy || "RMB");
         const proj = isPartial ? toRMB(t.projected_annual ?? (t.amount / yearProgress), t.ccy || "RMB") : rmb;
         return { ...t, rmb, projected: proj };
       });
-      const ins = (data.incomes || []).map(t => {
+      const insAll = (data.incomes || []).map(t => {
         const rmb = toRMB(t.amount, t.ccy || "RMB");
         const proj = isPartial ? toRMB(t.projected_annual ?? (t.amount / yearProgress), t.ccy || "RMB") : rmb;
         return { ...t, rmb, projected: proj };
       });
+      const isExcluded = (t) => !!(t && (t.exclude || t.excludeFromCashflow));
+      const exps = expsAll.filter(t => !isExcluded(t));
+      const ins = insAll.filter(t => !isExcluded(t));
       const totalExpenseYTD = exps.reduce((a,t) => a + t.rmb, 0);
       const totalIncomeYTD  = ins.reduce((a,t) => a + t.rmb, 0);
       const totalExpenseProj = exps.reduce((a,t) => a + t.projected, 0);
@@ -58,7 +63,6 @@
       // 把 recurring（房租/利息/保险/工资）按当年实际有效月数年化
       // 双重计算保护：如果 yearly/*.json 已经记录了对应 recurring=<key>，则 recurring 那一侧跳过该 key（实绩优先）
       const yearNum = parseInt(yearKey, 10);
-      const C = window.AssetCore;
       const yearlyRecurringKeys = new Set([...exps, ...ins].filter(t => t.recurring).map(t => t.recurring));
       const recurringAnnual = (rec.expenses || []).reduce((a,e) => {
         if (yearlyRecurringKeys.has(e.key)) return a;
@@ -231,8 +235,8 @@
 
       // ---- 大类明细 ----
       const allTx = [
-        ...ins.map(t => ({...t, _dir:"in"})),
-        ...exps.map(t => ({...t, _dir:"out"})),
+        ...insAll.map(t => ({...t, _dir:"in"})),
+        ...expsAll.map(t => ({...t, _dir:"out"})),
       ].sort((a,b) => b.rmb - a.rmb);
       const txTbody = $("#tx-list tbody");
       txTbody.innerHTML = allTx.map(t => {
@@ -240,12 +244,14 @@
         const sign = t._dir === "in" ? "+" : "-";
         const color = t._dir === "in" ? "var(--ok)" : "var(--text-0)";
         const persona = personaCfg[t.by || "self"];
+        const excluded = isExcluded(t);
+        const excludeChip = excluded ? `<span class="chip" style="margin-left:6px;border:1px dashed var(--line);color:var(--text-2);background:transparent">不计入</span>` : "";
         return `
           <tr>
-            <td><span class="num" style="font-size:12px;color:var(--text-2)">${data.year}</span></td>
-            <td><span style="font-size:12px;color:${cfg?.color||'var(--text-1)'}">${cfg?.name || t.category || "—"}</span></td>
-            <td>${t.name || "—"}<div style="color:var(--text-2);font-size:11px;margin-top:2px">${t.note || ""}</div></td>
-            <td><span style="font-size:11px;color:${persona?.color||'var(--text-2)'}">${persona?.name || t.by || "—"}</span></td>
+            <td><span class="num" style="font-size:12px;color:var(--text-2)">${h(data.year)}</span></td>
+            <td><span style="font-size:12px;color:${cfg?.color||'var(--text-1)'}">${h(cfg?.name || t.category || "—")}</span>${excludeChip}</td>
+            <td>${h(t.name || "—")}<div style="color:var(--text-2);font-size:11px;margin-top:2px">${h(t.note || "")}</div></td>
+            <td><span style="font-size:11px;color:${persona?.color||'var(--text-2)'}">${h(persona?.name || t.by || "—")}</span></td>
             <td class="r" style="color:${color}">${sign}${fmtK(t.rmb)}</td>
           </tr>
         `;

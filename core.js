@@ -29,12 +29,74 @@ window.AssetCore = (function () {
     return PRIVACY_MASK;
   }
 
+  function escapeHTML(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function escapeAttr(value) {
+    return escapeHTML(value).replace(/`/g, "&#96;");
+  }
+
+  function getThemeName() {
+    try {
+      return document && document.documentElement && document.documentElement.getAttribute("data-theme") === "dark"
+        ? "dark"
+        : "light";
+    } catch (err) {
+      return "light";
+    }
+  }
+
+  function getEchartsTheme() {
+    return getThemeName() === "dark" ? "dark" : null;
+  }
+
+  function getMilestoneStats(milestones) {
+    const items = Array.isArray(milestones)
+      ? milestones
+      : ((milestones && Array.isArray(milestones.items)) ? milestones.items : []);
+    const done = items.filter(function (m) { return !!(m && m.done); }).length;
+    return { done: done, total: items.length };
+  }
+
   // ---- 核心工具函数 ----
 
   // 动态获取数据路径 (根据 config.js 配置，如果没有则回退到 demo_data)
   function getDataPath(filename) {
-    const dir = (window.AFD_CONFIG && window.AFD_CONFIG.dataDir) ? window.AFD_CONFIG.dataDir : 'demo_data';
-    return `./${dir}/${filename}`;
+    const cfg = window.AFD_CONFIG || {};
+    const dataDir = cfg.dataDir ? String(cfg.dataDir) : "demo_data";
+    const sharedDir = cfg.sharedDir ? String(cfg.sharedDir) : "demo_data";
+    const name = String(filename || "");
+    const base = name.split("/")[0];
+    const isNumeric =
+      base === "transactions" ||
+      name === "target.json" ||
+      name === "history.json" ||
+      name === "liabilities.json" ||
+      name === "recurring.json" ||
+      name === "income_events.json" ||
+      name === "categories.json";
+    const dir = isNumeric ? dataDir : sharedDir;
+    return `./${dir}/${name}`;
+  }
+
+  function fetchJson(filename, options) {
+    const opts = options || {};
+    const url = opts.url || getDataPath(filename);
+    return fetch(url, { cache: "no-store" })
+      .then(function (res) {
+        if (!res.ok) throw new Error((filename || url) + " 加载失败（HTTP " + res.status + "）");
+        return res.json();
+      })
+      .catch(function (err) {
+        if (Object.prototype.hasOwnProperty.call(opts, "fallback")) return opts.fallback;
+        throw err;
+      });
   }
 
   // ========== 格式化 ==========
@@ -194,7 +256,8 @@ window.AssetCore = (function () {
       m.actualPct = total > 0 ? m.total / total : 0;
       m.delta     = m.actualPct - m.targetPct;
       if (m.key === "_orphan") {
-        m.status = m.actualPct > 0.02 ? "pending" : "ok";
+        // 游离持仓目标=0%，有任何持仓都算超标
+        m.status = m.total > 0 ? "over" : "ok";
       } else {
         m.status = Math.abs(m.delta) > m.thresholdPct ? (m.delta > 0 ? "over" : "under") : "ok";
       }
@@ -210,7 +273,7 @@ window.AssetCore = (function () {
     });
 
     // 金融盘 vs 整体盘（剔除房产 + 待变现）
-    const realEstateKeys = new Set(["qianhai_property","dingtai_property"]);
+    const realEstateKeys = new Set(["property_a","property_b"]);
     let financialTotal = 0;
     modules.forEach(function (m) {
       if (m.key === "_orphan") return;
@@ -226,7 +289,7 @@ window.AssetCore = (function () {
   // ========== 加权预期年化 ==========
   function weightedExpectedReturn(cur, scenario, opts) {
     opts = opts || {};
-    const realEstateKeys = new Set(["qianhai_property","dingtai_property"]);
+    const realEstateKeys = new Set(["property_a","property_b"]);
     let weighted = 0, totalW = 0;
     cur.modules.forEach(function (m) {
       if (m.key === "_orphan" && opts.excludeOrphan !== false) return;
@@ -317,7 +380,7 @@ window.AssetCore = (function () {
         category: "pending",
         title: "存在待变现资产",
         detail: `${fmtK(orphan.total)} RMB（占 ${(orphan.actualPct*100).toFixed(1)}%）。`,
-        action: "完成 P0 鼎太定价 + 售出后重分配",
+        action: "完成 P0 核心房产定价 + 售出后重分配",
       });
     }
 
@@ -429,6 +492,9 @@ window.AssetCore = (function () {
     PRIVACY_LS_KEY: PRIVACY_LS_KEY,
     fmt: fmt, fmtK: fmtK, pct: pct,
     isPrivacyMode: isPrivacyMode, setPrivacyMode: setPrivacyMode, maskedValue: maskedValue,
+    escapeHTML: escapeHTML, escapeAttr: escapeAttr,
+    getThemeName: getThemeName, getEchartsTheme: getEchartsTheme,
+    getMilestoneStats: getMilestoneStats,
     parseDate: parseDate, isActive: isActive, activeMonthsInYear: activeMonthsInYear,
     makeToRMB: makeToRMB,
     inflate: inflate, deflate: deflate,
@@ -438,6 +504,17 @@ window.AssetCore = (function () {
     reconcile: reconcile,
     runAssertions: runAssertions,
     getDataPath: getDataPath,
+    fetchJson: fetchJson,
+
+    // 图表注册表 — tab 切换时自动 resize 避免宽度塌陷
+    _charts: [],
+    registerChart: function(chart) { this._charts.push(chart); },
+    resizeAllCharts: function() {
+      this._charts = this._charts.filter(function(c) {
+        if (c && !c.isDisposed()) { c.resize(); return true; }
+        return false;
+      });
+    },
     resolveCashValueForYear: resolveCashValueForYear,
     injectInsuranceCashValue: injectInsuranceCashValue,
   };

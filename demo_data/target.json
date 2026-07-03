@@ -1,97 +1,470 @@
 {
-  "version": "demo-v1",
-  "updated": "2026-05-17",
+  "version": "V3.0-cro_surgery",
+  "updated": "2026-06-26",
   "currency": "RMB",
-  "scope": "DEMO 数据。配置框架真实可参考；金额是虚构的普通家庭水平。",
-
+  "scope": "终局口径（核心房产售出后稳态）。RMB / USD-HKD 资产池物理隔离。",
   "philosophy": [
-    "不是基金组合，是一台『家庭被动现金流机器』：房租 + 股息 + 国债票息 + 黄金对冲",
-    "Target 是终局态。DEMO 简化为单房产配置（出租收租金）",
-    "**RMB 池 vs USD/HKD 池物理隔离**：人民币出不去，海外子弹只能在海外内部再分配",
-    "腾讯减仓顺序：先富途 HKD（成本价高、税少）→ 转 VOO；港股通保留长期主仓",
-    "子项阈值仅作『看一眼』提醒（≈ 大类阈值 1/2），唯一强制触发的是红线和大类阈值",
-    "**收益率假设保守版**：用于长期安全测算；标普 6% / 黄金 4% / 房产仅算租金 yield 不算升值"
+    "[DEMO] 不是基金组合，是一台家庭被动现金流机器。所有金额和比例为演示数据。"
   ],
-
   "redLines": {
-    "singleStockMaxPct":     0.05,
-    "rmbMaxPct":             0.70,
-    "rmbTargetPct":          0.60,
-    "moduleDeviationDefault":0.05
+    "singleStockMaxPct": 0.05,
+    "rmbMaxPct": 0.7,
+    "rmbTargetPct": 0.6,
+    "moduleDeviationDefault": 0.05
   },
-
   "inflation": {
     "annual": 0.025,
     "scenarios": {
-      "low":      { "annual": 0.015, "label": "低通胀 1.5%（日本化）" },
-      "baseline": { "annual": 0.025, "label": "基准 2.5%（CPI 长期均值）" },
-      "high":     { "annual": 0.040, "label": "高通胀 4%（货币宽松/输入性）" }
+      "low": {
+        "annual": 0.015,
+        "label": "低通胀 1.5%（日本化）"
+      },
+      "baseline": {
+        "annual": 0.025,
+        "label": "基准 2.5%（CPI 长期均值）"
+      },
+      "high": {
+        "annual": 0.04,
+        "label": "高通胀 4%（货币宽松/输入性）"
+      }
     },
     "default": "baseline",
     "note": "用于刚性支出年化、瀑布图通胀调整、长期增长曲线的实际购买力推算"
   },
-
   "retirement": {
-    "selfRetireYear":  2050,
-    "wifeRetireYear":  2050,
-    "selfSalaryAnnual": 264000,
-    "wifeSalaryAnnual": 144000,
-    "stayInChina":  true,
-    "kidsAbroad":   false,
-    "note": "DEMO：通用占位，朋友请改成自己的退休时间表。改这里时记得同步改 recurring.json 里 salary_* 的 endDate。"
+    "selfRetireYear": 2027,
+    "wifeRetireYear": 2027,
+    "selfSalaryAnnual": 0,
+    "wifeSalaryAnnual": 0,
+    "stayInChina": true,
+    "kidsAbroad": false,
+    "note": "[DEMO] 假设 2027 年起两人均无工资。退休后只剩房租 + 长辈月度补贴 + 投资分红/利息。kidsAbroad=false 意味着不预留巨额留学金。"
   },
-
+  "coastFire": {
+    "selfCurrentAge": 40,
+    "legalRetireAge": 60,
+    "annualMultiple": 25,
+    "realReturns": {
+      "conservative": 0.05,
+      "neutral": 0.06,
+      "optimistic": 0.07
+    },
+    "default": "neutral",
+    "note": "Coast FIRE 计算：当前总盘 × (1+r)^(legalRetireAge - selfCurrentAge) ≥ annualMultiple × 年开销。realReturns 是『扣除通胀的实际收益率』口径（已包含 2-3% 通胀对冲），所以 25× 年开销也是今天的购买力，无需再调通胀。selfCurrentAge 改成你今年几岁；其他默认值已是合理保守值。Sam Dogen 翻车主因：序列风险 + 弹性支出膨胀 + 心理身份认同 → 我们用 Coast 而不是 Full RE 规避。"
+  },
   "milestones": {
-    "note": "投资执行行动清单。",
+    "note": "FIRE 路径里的里程碑动作。来自资产配置 V2.0 战术执行手册 P0/P1/P2/P3 + 2026-05-17 避险卫星结构修复。",
     "items": [
-      { "id": "p0_first_cut",        "priority": "P0", "name": "腾讯第一刀（卖等值 30 万 RMB）",          "done": false },
-      { "id": "p1_overseas_channel", "priority": "P1", "name": "海外 ETF 通道确认（IBKR/Saxo LSE 通道）",  "done": false, "note": "未开通；blocked UCITS 子项" },
-      { "id": "p1_us_estate_plan",   "priority": "P1", "name": "美国资产保护：遗嘱 + NRA 寿险 + situs 清单","done": false },
-      { "id": "p2_realloc",          "priority": "P2", "name": "海外 yields 复投到 VOO / IAU",            "done": false },
-      { "id": "p3_education_path",   "priority": "P3", "name": "合规教育金建设（kidsAbroad=false 时降级）","done": false },
-      { "id": "p3_insurance_review", "priority": "P3", "name": "保险减额缴清评估",                       "done": false },
-      { "id": "p3_quarterly_review", "priority": "P3", "name": "季度再平衡纪律：偏离 5% 触发",           "done": false, "ongoing": true }
+      {
+        "id": "p0_core_property_pricing",
+        "priority": "P0",
+        "name": "核心房产定价（挂牌成交 85 分位 × 95%）",
+        "done": false
+      },
+      {
+        "id": "p0_tencent_first_cut",
+        "priority": "P0",
+        "name": "港股通腾讯第一刀（卖 80 万 RMB 等值）",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p0_tencent_futu_cut",
+        "priority": "P0",
+        "name": "腾讯富途仓阶梯减压 (首刀 50 万已切)",
+        "done": true,
+        "ongoing": true,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p0_iau_to_target",
+        "priority": "P0",
+        "name": "黄金整体比重补到 13% (国内 518880 + 海外 IAU)",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p0_physical_gold",
+        "priority": "P0",
+        "name": "落实 100 万人民币实物金条采购与存储",
+        "done": false
+      },
+      {
+        "id": "p0_ai_monitor",
+        "priority": "P0",
+        "name": "部署 AI 每日自动化监控脚本（网格/VIX/汇率/QE）",
+        "done": false
+      },
+      {
+        "id": "p1_clean_hk_etf",
+        "priority": "P1",
+        "name": "清仓港股碎股 ETF 以降低管理损耗",
+        "done": true
+      },
+      {
+        "id": "p1_disaster_alerts",
+        "priority": "P1",
+        "name": "月度巡检四盏灾难红灯 (VIX/MA200/跷跷板/HYG)",
+        "done": false,
+        "ongoing": true,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p1_tencent_stoploss",
+        "priority": "P1",
+        "name": "腾讯设技术止损（200 周均线无脑砍 1/3）",
+        "done": true,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p1_overseas_channel",
+        "priority": "P1",
+        "name": "海外 ETF 通道确认（IBKR/Saxo LSE 通道）",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p1_us_estate_plan",
+        "priority": "P1",
+        "name": "美国资产保护：遗嘱 + NRA 寿险 + situs 清单",
+        "done": false
+      },
+      {
+        "id": "p2_rent_lease",
+        "priority": "P2",
+        "name": "市区租房 1 年合同 1.0-1.2 万/月",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p2_realloc_650",
+        "priority": "P2",
+        "name": "[DEMO] 核心房产售出款分配（国债/短债/黄金/红利）",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p1_open_wmc",
+        "priority": "P1",
+        "name": "开立跨境理财通（南向通）深港双边账户",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p2_global_growth_gap",
+        "priority": "P2",
+        "name": "全球增长模块缺口补到 20%（差额 14%）",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p3_education_path",
+        "priority": "P3",
+        "name": "合规教育金建设（kidsAbroad=false 时降级）",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      },
+      {
+        "id": "p3_insurance_review",
+        "priority": "P3",
+        "name": "精算师评估保险减额缴清",
+        "done": false
+      },
+      {
+        "id": "p3_quarterly_review",
+        "priority": "P3",
+        "name": "季度再平衡纪律：偏离 5% 触发",
+        "done": false,
+        "ongoing": true
+      },
+      {
+        "id": "p3_btc_evaluate",
+        "priority": "P3",
+        "name": "评估是否加入 1% IBIT（数字黄金）",
+        "done": false,
+        "note": "[DEMO] 具体金额已脱敏"
+      }
     ]
   },
-
   "assumptions": {
-    "single_property":   { "value": true,  "label": "单套房产（出租收租金）", "impact": "DEMO 简化模型，不演示『卖房重分配』剧情" },
-    "lse_channel_open":  { "value": false, "label": "LSE/UCITS 通道已开通（IBKR/Saxo）", "impact": "未开通时，UCITS 子项标 phase=blocked，VOO 临时承接" },
-    "tencent_exit_path": { "value": "futu_first", "label": "腾讯减仓优先级：富途 HKD → 港股通", "impact": "富途 HKD 优先清仓 → 转 VOO；港股通保留" },
-    "return_scenario":   { "value": "conservative", "label": "收益率假设档位：保守 / 中性 / 乐观", "impact": "长期推演用保守，复盘看实际" }
+    "core_property_sold": {
+      "value": true,
+      "label": "核心房产已售出，款项已到账",
+      "impact": "[DEMO] Target 总盘为演示数字"
+    },
+    "lse_channel_open": {
+      "value": false,
+      "label": "LSE/UCITS 通道已开通（IBKR/Saxo）",
+      "impact": "未开通时，UCITS 子项标 phase=blocked，VOO 临时承接"
+    },
+    "rental_3to6y": {
+      "value": true,
+      "label": "[DEMO] 卖房后租房（含物业）× 6 年",
+      "impact": "[DEMO] 刚性支出 = 房租 + 保险 + 利息 + 车险物业等 ≈ 演示数字/年"
+    },
+    "tencent_exit_path": {
+      "value": "futu_first",
+      "label": "腾讯减仓优先级：富途 HKD → 港股通",
+      "impact": "[DEMO] 富途 HKD 仓清仓 → 转 VOO；港股通仓保留"
+    },
+    "return_scenario": {
+      "value": "conservative",
+      "label": "收益率假设档位：保守 / 中性 / 乐观",
+      "impact": "FIRE 推演用保守，复盘看实际"
+    }
   },
-
+  "disasterTriggers": {
+    "note": "四盏红灯 — 灾难确认信号。任何 ≥2 盏同时亮起 = 启动 V6.0 终极现金大军方案。警报不响，天就塌不下来。我们不预测灾难，但我们写好了灾难发生时的每一行代码。",
+    "activated": false,
+    "lastChecked": "2026-06-02",
+    "rules": [
+      {
+        "id": 1,
+        "symbol": "VIX",
+        "name": "VIX 恐慌指数飙升",
+        "icon": "🌋",
+        "howToCheck": "富途 App 搜 VIX → 看当前值 + 日K",
+        "baseline_2026_06": "[DEMO]",
+        "redCondition": "单日跳涨突破 30，且连续 3 天无法跌回 25 以下；若冲破 35 则灾难加速",
+        "diagnosis": "全美股机构疯狂买入看跌期权保命 → 系统性无差别砸盘正在进行中"
+      },
+      {
+        "id": 2,
+        "symbol": "QQQM / VOO",
+        "name": "美股跌破 200 日均线（牛市终结线）",
+        "icon": "📉",
+        "howToCheck": "QQQM 或 VOO K线图 → 叠加 MA200 指标 → 看收盘价是否跌破均线",
+        "baseline_2026_06": "[DEMO]",
+        "redCondition": "收盘价跌破 MA200，且连续 3 天无法收回",
+        "diagnosis": "华尔街长线基金生死线失守 → 美股数十年牛市趋势正式终结，进入漫长熊市/挤泡沫"
+      },
+      {
+        "id": 3,
+        "symbol": "399006 vs 563020",
+        "name": "创业板暴跌 + 红利低波放量暴涨（跷跷板断裂）",
+        "icon": "⚖️",
+        "howToCheck": "同屏对比创业板指 (399006) 和 563020 的日K + 成交量柱",
+        "baseline_2026_06": "[DEMO]",
+        "redCondition": "创业板单日大跌 3-5% 跌破关键支撑，同时 563020 逆势收红/大涨 + 成交量放大 ≥1 倍",
+        "diagnosis": "国内科技故事崩塌 → 百亿资金夺路出逃抢红利避险 → 🔫 这是立刻买入 563020 的终极发令枪"
+      },
+      {
+        "id": 4,
+        "symbol": "HYG",
+        "name": "美国高收益债 HYG 暴跌（信用动脉出血）",
+        "icon": "💀",
+        "howToCheck": "富途 App 搜 HYG → 日K 看单日跌幅",
+        "baseline_2026_06": "[DEMO]",
+        "redCondition": "HYG 单日跌幅超过 2%（债基地震级别），伴随美债收益率暴涨",
+        "diagnosis": "实体企业资金链断裂 → 垃圾债大面积违约 → 雷曼兄弟级流动性危机正在发生"
+      },
+      {
+        "id": 5,
+        "symbol": "FED & M2",
+        "name": "中美印钞机极速扩表",
+        "icon": "🖨️",
+        "howToCheck": "AI 自动化监控美联储资产负债表（单月新增>3000亿） & 国内 M2-GDP 剪刀差（>5%）",
+        "baseline_2026_06": "[DEMO]",
+        "redCondition": "任一指标突破阈值，触发法定购买力危机",
+        "diagnosis": "法币信用透支 → 锁定离岸 VOO 严禁止盈，同时立刻完成实物黄金最后建仓"
+      }
+    ]
+  },
+  "disasterResponsePlan": {
+    "note": "[DEMO 版本 · 不含具体操作指令]",
+    "activated": false,
+    "phases": [
+      {
+        "step": 1,
+        "timing": "第 1 天（大震荡）",
+        "action": "什么都不做，管住手",
+        "reason": "崩盘首日杠杆盘强平噪音，黄金和美债甚至会被流动性危机错杀下跌。此时不要去接飞刀。"
+      },
+      {
+        "step": 2,
+        "timing": "第 3-5 天（情绪稍微稳定）",
+        "instructions": [
+          {
+            "pool": "国内 RMB",
+            "trigger": "563020（红利低波）放量上涨",
+            "execute": "不要等回调，直接用逆回购里 10-15 万 RMB，市价买入 563020",
+            "rationale": "这是国内资产保命的诺亚方舟"
+          },
+          {
+            "pool": "海外 USD",
+            "trigger": "VOO 跌破第一档 $587",
+            "execute": "用 26.4 万美元货基里的 8 万美元，直接买入 VOO",
+            "rationale": "第一档抄底，成本 ~$587"
+          }
+        ]
+      },
+      {
+        "step": 3,
+        "timing": "此后（等风来）",
+        "instructions": [
+          {
+            "trigger": "VOO 触发第二档 $552（回撤 ~20%）",
+            "execute": "再打入 10 万美元买入 VOO",
+            "rationale": "第二档加仓，加重美股长线暴露"
+          },
+          {
+            "trigger": "IAU 黄金被砸到 ~$43（因流动性恐慌错杀）",
+            "execute": "用卖腾讯换来的美元，砸进第一笔 4 万美元 IAU",
+            "rationale": "黄金流动性错杀后的便宜筹码"
+          },
+          {
+            "trigger": "默认",
+            "execute": "剩余十几万美元继续躺货基吃高利息，等第三档信号",
+            "rationale": "现金是氧气，永远留一手"
+          }
+        ]
+      }
+    ]
+  },
   "rebalanceRules": {
     "frequency": "季度末偏离 > 大类阈值触发；子项偏离仅作提醒；红线触发不等周期",
     "preferNewMoney": "优先用工资/股息再投入配平，不卖出已有持仓产生交易成本",
     "method": "大额减仓走 VWAP/不规则节奏，不给市场可预测卖压",
-    "poolSeparation": "RMB 池超标只能在 RMB 内部再分配；USD/HKD 池超标只能在海外内部再分配。两池之间不互相补位。"
+    "poolSeparation": "RMB 池超标只能在 RMB 内部再分配；USD/HKD 池超标只能在海外内部再分配。两池之间不互相补位。 | 特例：跨境理财通（南向通）虽然买的是海外美元资产，但因强制闭环结汇，在风控口径上 100% 归属于 RMB 境内资产池。"
   },
-
   "returnAssumptions": {
     "note": "三档年化收益率假设。基于 Shiller 100 年实际数据 + 全球大类资产长期回报研究。默认用保守。",
     "scenarios": {
-      "conservative": { "label": "保守（防自欺）",   "color": "#3ddc97" },
-      "neutral":      { "label": "中性（合理预期）", "color": "#7aa2ff" },
-      "optimistic":   { "label": "乐观（顺风局）",   "color": "#ffb454" }
+      "conservative": {
+        "label": "保守（防自欺）",
+        "color": "#3ddc97"
+      },
+      "neutral": {
+        "label": "中性（合理预期）",
+        "color": "#7aa2ff"
+      },
+      "optimistic": {
+        "label": "乐观（顺风局）",
+        "color": "#ffb454"
+      }
     }
   },
-
   "modules": [
     {
       "key": "defense_cash",
       "name": "防御现金",
       "roman": "一",
-      "targetPct": 0.16,
+      "targetPct": 0.15,
       "thresholdPct": 0.03,
       "purpose": "4-5 年刚性支出底线 + 突发流动性 + 抗 RMB 贬值的美元票息",
-      "rationale": "刚性支出 9 万/年。4 年 = 36 万，加半年应急 + 教育金过渡池缓冲 ≈ 16% = 56 万。",
+      "rationale": "刚性支出 27 万/年。4 年 = 108 万，加半年应急 + 教育金过渡池缓冲 ≈ 16% = 400 万。",
       "subs": [
-        { "key": "weizhong_demand",  "name": "微众活期",        "ccy": "RMB", "venue": "微众银行", "subTargetPct": 0.02, "subThresholdPct": 0.015, "phase": "active",  "expectedReturn": { "conservative": 0.018, "neutral": 0.022, "optimistic": 0.025 }, "note": "当月开销缓冲，T+0" },
-        { "key": "deposit_treasury", "name": "国债阶梯 1-3 年", "ccy": "RMB", "venue": "银行/券商","subTargetPct": 0.04, "subThresholdPct": 0.025, "phase": "planned", "expectedReturn": { "conservative": 0.022, "neutral": 0.026, "optimistic": 0.030 }, "note": "未来用工资/股息逐步建立" },
-        { "key": "shortbond_etf",    "name": "短债 ETF 511360", "ccy": "RMB", "venue": "A 股",    "subTargetPct": 0.04, "subThresholdPct": 0.025, "phase": "planned", "expectedReturn": { "conservative": 0.025, "neutral": 0.030, "optimistic": 0.035 } },
-        { "key": "futu_mmf_usd",     "name": "美元货币基金",    "ccy": "USD", "venue": "富途牛牛","subTargetPct": 0.04, "subThresholdPct": 0.025, "phase": "active",  "expectedReturn": { "conservative": 0.035, "neutral": 0.045, "optimistic": 0.050 }, "note": "美元短端利率 + 抗 RMB 贬值" },
-        { "key": "us_treasury",      "name": "美国国债 2032",   "ccy": "USD", "venue": "富途牛牛","subTargetPct": 0.02, "subThresholdPct": 0.02,  "phase": "active",  "expectedReturn": { "conservative": 0.040, "neutral": 0.045, "optimistic": 0.050 }, "note": "中长端票息；注意美国 situs 遗产税" },
+        {
+          "key": "weizhong_demand",
+          "name": "微众活期",
+          "ccy": "RMB",
+          "venue": "微众银行",
+          "subTargetPct": 0.02,
+          "subThresholdPct": 0.015,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.018,
+            "neutral": 0.022,
+            "optimistic": 0.025,
+            "source": "微众活期+ 历史 2-2.5%"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "wmc_southbound",
+          "name": "跨境理财通·南向通 (HKD/USD 存款/货基)",
+          "ccy": "RMB",
+          "venue": "外资行 (汇丰/渣打)",
+          "subTargetPct": 0.03,
+          "subThresholdPct": 0.02,
+          "phase": "planned",
+          "expectedReturn": {
+            "conservative": 0.04,
+            "neutral": 0.045,
+            "optimistic": 0.05,
+            "source": "香港美元大额存单/货基，远超国内 2% 存款"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "deposit_treasury",
+          "name": "国债阶梯 1-3 年",
+          "ccy": "RMB",
+          "venue": "银行/券商",
+          "subTargetPct": 0.01,
+          "subThresholdPct": 0.025,
+          "phase": "planned",
+          "expectedReturn": {
+            "conservative": 0.022,
+            "neutral": 0.026,
+            "optimistic": 0.03,
+            "source": "国债 1-3Y 当前收益率 2.2-2.6%"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "shortbond_etf",
+          "name": "短债 ETF 511360",
+          "ccy": "RMB",
+          "venue": "A 股",
+          "subTargetPct": 0.01,
+          "subThresholdPct": 0.025,
+          "phase": "planned",
+          "expectedReturn": {
+            "conservative": 0.025,
+            "neutral": 0.03,
+            "optimistic": 0.035,
+            "source": "短债 ETF 历史年化 2.5-3.5%"
+          }
+        },
+        {
+          "key": "futu_mmf_usd",
+          "name": "美元货币基金",
+          "ccy": "USD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0.02,
+          "subThresholdPct": 0.01,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.035,
+            "neutral": 0.045,
+            "optimistic": 0.05,
+            "source": "美元短端利率"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "sgov_etf",
+          "name": "SGOV（美短债 ETF）",
+          "ccy": "USD",
+          "venue": "富途/IBKR",
+          "subTargetPct": 0.04,
+          "subThresholdPct": 0.02,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.04,
+            "neutral": 0.05,
+            "optimistic": 0.055,
+            "source": "美国 0-3M 国债"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "us_treasury",
+          "name": "美国国债 2032",
+          "ccy": "USD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0.02,
+          "subThresholdPct": 0.02,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.04,
+            "neutral": 0.045,
+            "optimistic": 0.05,
+            "source": "美国 7-10Y 历史均值 4-5%"
+          },
+          "note": "[DEMO]"
+        },
         { "key": "insurance_cashvalue", "name": "保单现金价值", "ccy": "RMB", "venue": "保险账户", "subTargetPct": 0, "subThresholdPct": 0.03, "phase": "active", "expectedReturn": { "conservative": 0.025, "neutral": 0.030, "optimistic": 0.035 }, "note": "各保单当年现金价值（退保价值）合计；来自 recurring.json 的 cashValueSchedule，按 snapshot 年份取值并折 RMB" }
       ]
     },
@@ -99,49 +472,296 @@
       "key": "stable_cashflow",
       "name": "稳健现金流",
       "roman": "二",
-      "targetPct": 0.50,
+      "targetPct": 0.47,
       "thresholdPct": 0.05,
-      "purpose": "现金流基石：自住/可收租房产 + 红利 ETF",
-      "rationale": "房产 A 36% + 红利低波（515450/563020 1:1）14%。被动现金流机器的发动机。",
+      "purpose": "[DEMO] FIRE 现金流基石",
+      "rationale": "[DEMO] 核心房产 36% + 红利低波双拼 11%",
       "subs": [
-        { "key": "qianhai_property",   "name": "房产 A（出租）",       "ccy": "RMB", "venue": "不动产", "subTargetPct": 0.36, "subThresholdPct": 0.05,  "phase": "active",  "expectedReturn": { "conservative": 0.012, "neutral": 0.020, "optimistic": 0.030, "yieldOnly": true }, "note": "长期持有出租。如果你有自住房，加一条 home_property，把 yieldOnly 改成 false" },
-        { "key": "etf_515450",         "name": "大盘红利低波 515450",  "ccy": "RMB", "venue": "A 股",  "subTargetPct": 0.07, "subThresholdPct": 0.02, "phase": "active",  "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.090 }, "note": "防御力之王：大盘过滤更稳健" },
-        { "key": "etf_563020",         "name": "红利低波 563020（低费率）","ccy": "RMB", "venue": "A 股","subTargetPct": 0.07, "subThresholdPct": 0.02, "phase": "active",  "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.090 }, "note": "摩擦成本之王：同指数更低费率" }
+        {
+          "key": "property_core",
+          "name": "核心城市房产（收租型）",
+          "ccy": "RMB",
+          "venue": "不动产",
+          "subTargetPct": 0.36,
+          "subThresholdPct": 0.05,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.012,
+            "neutral": 0.02,
+            "optimistic": 0.03,
+            "yieldOnly": true,
+            "source": "一线城市租金 yield 2-3%，扣空置/维护取 1.2-3%；不算房价升值"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "etf_515450",
+          "name": "大盘红利低波 515450",
+          "ccy": "RMB",
+          "venue": "A 股",
+          "subTargetPct": 0.055,
+          "subThresholdPct": 0.02,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.06,
+            "neutral": 0.075,
+            "optimistic": 0.09,
+            "source": "红利低波长期 6-9%（含分红），大盘因子更稳健"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "etf_563020",
+          "name": "红利低波 563020（低费率）",
+          "ccy": "RMB",
+          "venue": "A 股",
+          "subTargetPct": 0.055,
+          "subThresholdPct": 0.02,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.06,
+            "neutral": 0.075,
+            "optimistic": 0.09,
+            "source": "与 512890 同指数；用更低费率吃同一份红利"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "high_div_bluechip",
+          "name": "高股息蓝筹（红利/能源/公用事业）",
+          "ccy": "RMB",
+          "venue": "A 股",
+          "subTargetPct": 0,
+          "subThresholdPct": 0,
+          "phase": "closed",
+          "expectedReturn": {
+            "conservative": 0.055,
+            "neutral": 0.07,
+            "optimistic": 0.085,
+            "source": "长江电力等公用事业蓝筹长期 5-8%（股息+缓增）"
+          },
+          "note": "[DEMO]"
+        }
       ]
     },
     {
       "key": "global_growth",
       "name": "全球增长",
       "roman": "三",
-      "targetPct": 0.20,
+      "targetPct": 0.2,
       "thresholdPct": 0.05,
       "purpose": "全球贝塔 + 跨币种敞口；UCITS 待通道开通；先 VOO/QQQM 兜底",
-      "rationale": "海外池目标 20%。资金来源仅限海外现存子弹 + 腾讯减仓回流，不依赖境内换汇。",
+      "rationale": "海外池目标 20%。资金来源仅限海外现存子弹 + 腾讯减仓回流，不依赖境内换汇。UCITS 通道未开通前，腾讯卖出的 HKD 转换为 USD 优先补 VOO/QQQM。",
       "subs": [
-        { "key": "cspx_vuaa",         "name": "CSPX/VUAA（标普·UCITS）","ccy": "USD", "venue": "IBKR/Saxo（待开通）", "subTargetPct": 0.10, "subThresholdPct": 0.04,  "phase": "blocked", "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.100 }, "note": "等 LSE 通道；阻塞期间不算偏离告警" },
-        { "key": "voo",               "name": "VOO（标普·美股）",       "ccy": "USD", "venue": "富途牛牛", "subTargetPct": 0.055,"subThresholdPct": 0.025, "phase": "hold",    "expectedReturn": { "conservative": 0.060, "neutral": 0.075, "optimistic": 0.100 }, "note": "UCITS 未开通时此 sub 临时承接腾讯卖出资金" },
-        { "key": "qqqm",              "name": "QQQM（纳指）",           "ccy": "USD", "venue": "富途牛牛", "subTargetPct": 0.025,"subThresholdPct": 0.02,  "phase": "active",  "expectedReturn": { "conservative": 0.075, "neutral": 0.095, "optimistic": 0.130 }, "note": "和 VOO 重叠高" },
-        { "key": "brk_b",             "name": "BRK.B（伯克希尔）",      "ccy": "USD", "venue": "富途牛牛", "subTargetPct": 0.02, "subThresholdPct": 0.015, "phase": "active",  "expectedReturn": { "conservative": 0.065, "neutral": 0.080, "optimistic": 0.100 }, "note": "和 VOO 相关性 > 0.85" }
+        {
+          "key": "cspx_vuaa",
+          "name": "CSPX/VUAA（标普·UCITS）",
+          "ccy": "USD",
+          "venue": "IBKR/Saxo（待开通）",
+          "subTargetPct": 0.115,
+          "subThresholdPct": 0.04,
+          "phase": "blocked",
+          "expectedReturn": {
+            "conservative": 0.06,
+            "neutral": 0.075,
+            "optimistic": 0.1,
+            "source": "标普 100 年实际年化 6.5-7%（含通胀）；UCITS 无遗产税敞口"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "voo",
+          "name": "VOO（标普·美股）",
+          "ccy": "USD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0.06,
+          "subThresholdPct": 0.025,
+          "phase": "hold",
+          "expectedReturn": {
+            "conservative": 0.06,
+            "neutral": 0.075,
+            "optimistic": 0.1,
+            "source": "同 CSPX，但是美国 situs asset，30 万 USD 以上有遗产税"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "qqqm",
+          "name": "QQQM（纳指）",
+          "ccy": "USD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0.025,
+          "subThresholdPct": 0.02,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.075,
+            "neutral": 0.095,
+            "optimistic": 0.13,
+            "source": "纳指 30 年年化 9-13%（高波动）"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "hsi_dividend_efund",
+          "name": "易方达亚太高股息（HK）",
+          "ccy": "HKD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0,
+          "subThresholdPct": 0.005,
+          "phase": "closed",
+          "expectedReturn": {
+            "conservative": 0.04,
+            "neutral": 0.06,
+            "optimistic": 0.08,
+            "source": "亚太高股息 4-8%（股息为主）"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "hstech",
+          "name": "恒生科技（HK）",
+          "ccy": "HKD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0,
+          "subThresholdPct": 0.01,
+          "phase": "closed",
+          "expectedReturn": {
+            "conservative": 0.04,
+            "neutral": 0.08,
+            "optimistic": 0.12,
+            "source": "中概科技高波动；保守 4%（已大跌过的 mean reversion）"
+          },
+          "note": "[DEMO]"
+        }
       ]
     },
     {
       "key": "hedge_satellite",
       "name": "避险卫星",
       "roman": "四",
-      "targetPct": 0.14,
+      "targetPct": 0.18,
       "thresholdPct": 0.03,
       "purpose": "黄金对冲货币体系 + 腾讯严控在 5% 红线内",
-      "rationale": "黄金 9% + 腾讯 5%（红线上限）= 14%。腾讯红线预算给港股通主仓，富途 HKD 优先清仓换 VOO。",
+      "rationale": "黄金 10%（海外 IAU）+ 3%（国内 518880）+ 腾讯 5%（港股通红线）= 18%。腾讯红线预算给港股通（中银 + 招商 = 长期主仓），富途 HKD 仓优先清仓换 VOO。",
       "subs": [
-        { "key": "iau_gold",          "name": "IAU（黄金）",            "ccy": "USD", "venue": "富途牛牛", "subTargetPct": 0.09, "subThresholdPct": 0.025, "phase": "active",  "expectedReturn": { "conservative": 0.030, "neutral": 0.045, "optimistic": 0.060 }, "note": "通胀对冲" },
-        { "key": "tencent_zhongyin",  "name": "腾讯（中银证券·港股通）","ccy": "HKD", "venue": "中银证券", "subTargetPct": 0.04, "subThresholdPct": 0.015, "phase": "active",  "expectedReturn": { "conservative": 0.030, "neutral": 0.060, "optimistic": 0.100 }, "note": "**长期主仓**（成本低）；红线预算大部分留这里" },
-        { "key": "tencent_zhaoshang", "name": "腾讯（招商证券·港股通）","ccy": "HKD", "venue": "招商证券", "subTargetPct": 0.01, "subThresholdPct": 0.01,  "phase": "active",  "expectedReturn": { "conservative": 0.030, "neutral": 0.060, "optimistic": 0.100 }, "note": "保留小仓；可选合并到中银" },
-        { "key": "tencent_futu",      "name": "腾讯（富途·HK）",        "ccy": "HKD", "venue": "富途牛牛", "subTargetPct": 0,    "subThresholdPct": 0.02,  "phase": "exit",    "expectedReturn": { "conservative": 0.030, "neutral": 0.060, "optimistic": 0.100 }, "note": "**清仓目标**：成本价高、税少，卖出 → 转 VOO" }
+        {
+          "key": "iau_gold",
+          "name": "IAU（黄金）",
+          "ccy": "USD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0.07,
+          "subThresholdPct": 0.025,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.03,
+            "neutral": 0.045,
+            "optimistic": 0.06,
+            "source": "黄金 50Y 实际年化 4-5%"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "physical_gold",
+          "name": "实物金条",
+          "ccy": "RMB",
+          "venue": "家庭物理金库",
+          "subTargetPct": 0.04,
+          "subThresholdPct": 0.01,
+          "phase": "planned",
+          "expectedReturn": {
+            "conservative": 0.03,
+            "neutral": 0.045,
+            "optimistic": 0.06
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "gold_etf_huaan",
+          "name": "华安黄金ETF (518880)",
+          "ccy": "RMB",
+          "venue": "A 股",
+          "subTargetPct": 0.02,
+          "subThresholdPct": 0.01,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.03,
+            "neutral": 0.045,
+            "optimistic": 0.06
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "tencent_zhongyin",
+          "name": "腾讯（中银证券·港股通）",
+          "ccy": "HKD",
+          "venue": "中银证券",
+          "subTargetPct": 0.04,
+          "subThresholdPct": 0.015,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.03,
+            "neutral": 0.06,
+            "optimistic": 0.1,
+            "source": "腾讯过去 10Y 年化 8% 但波动 35%；保守 3%"
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "tencent_zhaoshang",
+          "name": "腾讯（招商证券·港股通）",
+          "ccy": "HKD",
+          "venue": "招商证券",
+          "subTargetPct": 0.01,
+          "subThresholdPct": 0.01,
+          "phase": "active",
+          "expectedReturn": {
+            "conservative": 0.03,
+            "neutral": 0.06,
+            "optimistic": 0.1
+          },
+          "note": "[DEMO]"
+        },
+        {
+          "key": "tencent_futu",
+          "name": "腾讯（富途·HK）",
+          "ccy": "HKD",
+          "venue": "富途牛牛",
+          "subTargetPct": 0,
+          "subThresholdPct": 0.02,
+          "phase": "exit",
+          "expectedReturn": {
+            "conservative": 0.03,
+            "neutral": 0.06,
+            "optimistic": 0.1
+          },
+          "note": "[DEMO]"
+        }
       ]
     }
   ],
-
+  "changelog": [
+    {
+      "date": "2026-01-01",
+      "version": "V3.0-demo",
+      "changes": [
+        "[DEMO 版本 · 展示用 · 不含真实财务数据]"
+      ]
+    }
+  ],
   "souvenirs": [
-    { "key": "nvda_souvenir", "name": "NVDA 1 股（纪念）", "shares": 1, "ccy": "USD", "note": "DEMO：纪念股留念" }
+    {
+      "key": "nvda_souvenir",
+      "name": "NVDA 1 股（纪念）",
+      "shares": 1,
+      "ccy": "USD",
+      "note": "做空 NVDA 大赚后留 1 股留念，富途成本价显示负数（已实现盈亏倒挤）"
+    },
+    {
+      "key": "lkncy_souvenir",
+      "name": "LKNCY 1 股（纪念）",
+      "shares": 1,
+      "ccy": "USD",
+      "note": "瑞幸咖啡留念股，成本 4.38"
+    }
   ]
 }

@@ -6,6 +6,7 @@
 (function () {
   const C = window.AssetCore;
   const fmt = C.fmt, fmtK = C.fmtK, pct = C.pct;
+  const h = C.escapeHTML, a = C.escapeAttr;
   const pp = (x, d=1) => (x == null || isNaN(x)) ? "—" : (x*100).toFixed(d) + "pp";
   const moneyText = (n, d=2) => C.isPrivacyMode() ? C.maskedValue() : (n || 0).toFixed(d);
   const $  = (s, r=document) => r.querySelector(s);
@@ -13,8 +14,8 @@
 
   // ---- 0. 加载数据 ----
   Promise.all([
-    fetch(C.getDataPath("target.json"), {cache:"no-store"}).then(r => r.json()),
-    fetch(C.getDataPath("history.json"),{cache:"no-store"}).then(r => r.json()),
+    C.fetchJson("target.json"),
+    C.fetchJson("history.json"),
     fetch(C.getDataPath("recurring.json"),{cache:"no-store"}).then(r => r.json()).catch(() => null),
   ]).then(([target, history, recurring]) => {
     const snaps = (history.snapshots || []).slice().sort((a,b) => a.date.localeCompare(b.date));
@@ -78,8 +79,8 @@ python3 -m http.server 8765</pre>
   function renderHeader(cur, target) {
     $("#rate-usd").textContent = (cur.rates?.USD || 1).toFixed(4);
     $("#rate-hkd").textContent = (cur.rates?.HKD || 1).toFixed(4);
-    const src = cur.ratesSource ? `<div style="color:var(--text-2);font-size:11px">汇率源：${cur.ratesSource}</div>` : "";
-    $("#snapshot-comment").innerHTML = (cur.comment ? `“${cur.comment}”` : "") + src;
+    const src = cur.ratesSource ? `<div style="color:var(--text-2);font-size:11px">汇率源：${h(cur.ratesSource)}</div>` : "";
+    $("#snapshot-comment").innerHTML = (cur.comment ? `“${h(cur.comment)}”` : "") + src;
   }
 
   function renderKPIs(cur, prev, target) {
@@ -186,8 +187,10 @@ python3 -m http.server 8765</pre>
       },
       {
         label: "退休年现金流缺口",
-        value: gap >= 0 ? "+" + fmtK(-gap) : "-" + fmtK(gap),
-        sub: `年开销 ${fmtK(annualExpense)} − 被动收入 ${fmtK(annualPassive)} ${ret.selfRetireYear ? "· 假设 " + ret.selfRetireYear + " 退休" : ""}`,
+        value: gap > 0 ? fmtK(gap) : "已覆盖",
+        sub: gap > 0
+          ? `年开销 ${fmtK(annualExpense)} − 被动收入 ${fmtK(annualPassive)} ${ret.selfRetireYear ? "· 假设 " + ret.selfRetireYear + " 退休" : ""}`
+          : `被动收入已覆盖开销 ${fmtK(-gap)} ${ret.selfRetireYear ? "· 假设 " + ret.selfRetireYear + " 退休" : ""}`,
         help: "退休年开销估算-被动收入估算；为正表示缺口（需要投资收益或降低开销弥补）",
         tone: gap > 0 ? "warn" : "ok",
       },
@@ -207,7 +210,7 @@ python3 -m http.server 8765</pre>
   let _recurringCache = null;
   function loadRecurringOnce() {
     if (_recurringCache) return Promise.resolve(_recurringCache);
-    return fetch(C.getDataPath("recurring.json"), {cache:"no-store"}).then(r => r.json()).then(d => _recurringCache = d).catch(() => null);
+    return C.fetchJson("recurring.json").then(d => _recurringCache = d).catch(() => null);
   }
   function computeAnnualExpenseEstimate(target) {
     if (!_recurringCache) return 0;
@@ -418,7 +421,7 @@ python3 -m http.server 8765</pre>
           <div class="mod-head">
             <div>
               <div class="mod-name">
-                <span class="roman serif">${m.roman}</span>${m.name}
+                <span class="roman serif">${h(m.roman)}</span>${h(m.name)}
                 ${statusChip(m.status, m.delta)}
               </div>
               <div style="color:var(--text-2);font-size:11px;margin-top:4px" title="模块小计=该模块所有子项市值（折RMB）之和">小计 <span class="num">${fmt(m.total)}</span> RMB</div>
@@ -434,13 +437,18 @@ python3 -m http.server 8765</pre>
             <div class="target-mark" style="left:${targetX}%"></div>
           </div>
           <div class="subs">
-            ${m.subs.map(s => {
+            ${m.subs.filter(s => {
+              // 隐藏数量为 0 的持仓（已清仓），但保留 planned/blocked/exit 阶段的占位
+              if (s.phase === "planned" || s.phase === "blocked") return true;
+              if (s.shares === 0 || s.rmb === 0) return false;
+              return true;
+            }).map(s => {
               const subTarget = (s.subTargetPct != null) ? pct(s.subTargetPct,1) : "—";
               const subDeltaTxt = s.subThresholdPct != null && s.subThresholdPct > 0
                 ? `Δ ${s.delta>=0?"+":""}${pp(s.delta,1)}`
                 : "";
               const subStateCls = (s.status === "over" || s.status === "under") ? s.status : "ok";
-              const venue = s.venue ? `<span style="color:var(--text-2);font-size:11px">· ${s.venue}</span>` : "";
+              const venue = s.venue ? `<span style="color:var(--text-2);font-size:11px">· ${h(s.venue)}</span>` : "";
               const phaseBadge = phaseBadgeHTML(s.phase);
               const rawTitle = s.shares != null
                 ? `原币口径：${fmt(s.shares)} 股 × ${moneyText(s.price)} ${s.ccy}（成本 ${moneyText(s.costPerShare)}）`
@@ -453,13 +461,13 @@ python3 -m http.server 8765</pre>
               const stateTitle = `实际占比=${pct(s.actualPct,1)}（=市值/总盘）；目标=${subTarget}；偏离Δ=${pp(s.delta,1)}；阈值±${pct(s.subThresholdPct||0,1)}；Δ单位为pp`;
               return `
                 <div class="sub-row">
-                  <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${s.name}</span>${phaseBadge}${venue}</div>
-                  <div class="sub-raw num" title="${rawTitle}">
+                  <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${h(s.name)}</span>${phaseBadge}${venue}</div>
+                  <div class="sub-raw num" title="${a(rawTitle)}">
                     ${s.shares != null
                       ? `${fmt(s.shares)} × ${moneyText(s.price)}`
                       : `${fmt(s.raw)} ${s.ccy}`}
                   </div>
-                  <div class="sub-rmb num" title="${rmbTitle}">
+                  <div class="sub-rmb num" title="${a(rmbTitle)}">
                     ${fmt(s.rmb)}
                     ${s.shares != null && s.costRMB ? (() => {
                       const pl = s.rmb - s.costRMB;
@@ -472,7 +480,7 @@ python3 -m http.server 8765</pre>
                       return `<div class="pl" style="color:${color}" title="浮盈亏=市值-成本（证券类才有成本）">${pl>=0?'+':''}${fmtK(pl)} (${(plPct*100).toFixed(1)}%)</div>`;
                     })() : ''}
                   </div>
-                  <div class="sub-state ${subStateCls}" title="${stateTitle}">
+                  <div class="sub-state ${subStateCls}" title="${a(stateTitle)}">
                     <span style="font-size:10px;color:var(--text-2)">占比</span> ${pct(s.actualPct,1)}<br/>
                     <span style="font-size:10px;color:var(--text-2)">${subDeltaTxt || "Δ —"}</span>
                   </div>
@@ -499,7 +507,7 @@ python3 -m http.server 8765</pre>
       rows.push(`
         <tr class="al-mod-row">
           <td colspan="2" style="font-weight:600;color:var(--text-0)">
-            <span class="roman serif" style="color:var(--text-2);margin-right:6px">${m.roman}</span>${m.name}
+            <span class="roman serif" style="color:var(--text-2);margin-right:6px">${h(m.roman)}</span>${h(m.name)}
             <span style="color:var(--text-2);font-weight:400;font-size:11px;margin-left:8px">小计</span>
           </td>
           <td class="r" style="font-weight:600">${fmt(m.total)}</td>
@@ -522,7 +530,7 @@ python3 -m http.server 8765</pre>
             <td></td>
             <td style="padding-left:24px;color:var(--text-1)">
               <span style="color:var(--text-2);margin-right:6px">└</span>
-              <span class="ccy ${s.ccy}" style="margin-right:6px">${s.ccy}</span>${s.name}${phaseBadge}${subStatusInline}
+              <span class="ccy ${s.ccy}" style="margin-right:6px">${h(s.ccy)}</span>${h(s.name)}${phaseBadge}${subStatusInline}
             </td>
             <td class="r" style="color:var(--text-1)">${fmt(s.rmb)}</td>
             <td class="r" style="color:var(--text-1)">${pct(s.actualPct,1)}</td>
@@ -597,8 +605,9 @@ python3 -m http.server 8765</pre>
 
     cards.forEach((c, i) => {
       const chartDom = container.querySelector(`#trend-chart-${i} > div:last-child`);
-      const chart = echarts.init(chartDom, 'dark');
+      const chart = echarts.init(chartDom, C.getEchartsTheme());
       trendCharts.push(chart);
+      window.AssetCore.registerChart(chart);
 
       const activeIndex = enriched.findIndex(s => s.date === activeDate);
 
@@ -665,9 +674,9 @@ python3 -m http.server 8765</pre>
       const cls = !prev ? "flat" : (d>0 ? "up" : (d<0 ? "down" : "flat"));
       const txt = !prev ? "—" : `${d>=0?"+":""}${(dPct*100).toFixed(2)}%`;
       return `
-        <div class="tl-row ${s.date===activeDate?'active':''}" data-date="${s.date}">
-          <div class="d">${s.date}</div>
-          <div class="c">${s.comment || ""}</div>
+        <div class="tl-row ${s.date===activeDate?'active':''}" data-date="${a(s.date)}">
+          <div class="d">${h(s.date)}</div>
+          <div class="c">${h(s.comment || "")}</div>
           <div class="v">${fmtK(s.total)}</div>
           <div class="chg ${cls}">${txt}</div>
         </div>
@@ -748,7 +757,8 @@ python3 -m http.server 8765</pre>
     // 初始化 ECharts
     const chartDom = root.querySelector('#growth-chart');
     if (growthChart) growthChart.dispose();
-    growthChart = echarts.init(chartDom, 'dark');
+    growthChart = echarts.init(chartDom, C.getEchartsTheme());
+    window.AssetCore.registerChart(growthChart);
 
     const option = {
       backgroundColor: 'transparent',
@@ -908,9 +918,9 @@ python3 -m http.server 8765</pre>
     const lvlLabel = { danger: "红线", warn: "偏离", info: "待办", ok: "OK" };
     root.innerHTML = `<div class="hc-strip">${issues.map(i => `
       <div class="hc-row ${i.level}">
-        <span class="lvl">${lvlLabel[i.level] || i.level}</span>
-        <span class="body"><b>${i.title}</b>${i.detail}</span>
-        <span class="action">→ ${i.action}</span>
+        <span class="lvl">${h(lvlLabel[i.level] || i.level)}</span>
+        <span class="body"><b>${h(i.title)}</b>${h(i.detail)}</span>
+        <span class="action">→ ${h(i.action)}</span>
       </div>
     `).join("")}</div>`;
   }
@@ -956,7 +966,8 @@ python3 -m http.server 8765</pre>
 
     const chartDom = root.querySelector('#tencent-ladder-chart');
     if (tencentLadderChart) tencentLadderChart.dispose();
-    tencentLadderChart = echarts.init(chartDom, 'dark');
+    tencentLadderChart = echarts.init(chartDom, C.getEchartsTheme());
+    window.AssetCore.registerChart(tencentLadderChart);
 
     const option = {
       backgroundColor: 'transparent',
@@ -1103,4 +1114,188 @@ python3 -m http.server 8765</pre>
       <div class="ms-grid">${cards}</div>
     `;
   }
+
+  // ---- 对冲排行 Tab ----
+  let _hedgeRendered = false;
+  window.renderHedgeTab = function () {
+    if (_hedgeRendered) return; // 只渲染一次
+    _hedgeRendered = true;
+
+    const GROUPS = {
+      tencent:  { label:"🐉 腾讯·港股集中", color:"#a48cbc" },
+      us_equity:{ label:"🇺🇸 美股·全球增长", color:"#7aa07a" },
+      gold:     { label:"🥇 黄金·避险对冲", color:"#b69462" },
+      div_rmb:  { label:"🇨🇳 红利·防御收入", color:"#7d8fb8" },
+      closed:   { label:"🔴 已清仓",        color:"#6f6052" },
+    };
+    const KEY_GROUP = {
+      tencent_futu:"tencent", tencent_zhongyin:"tencent", tencent_zhaoshang:"tencent",
+      hstech:"closed", hsi_dividend_efund:"closed",
+      voo:"us_equity", qqqm:"us_equity", brk_b:"us_equity",
+      iau_gold:"gold", gold_etf_huaan:"gold",
+      etf_563020:"div_rmb", etf_515450:"div_rmb", etf_512890:"div_rmb",
+      high_div_bluechip:"closed",
+    };
+    const TAG_CLASS = {
+      tencent:"hedge-hk", us_equity:"hedge-usd", gold:"hedge-gold",
+      div_rmb:"hedge-div", closed:"hedge-closed"
+    };
+
+    C.fetchJson("history.json").then(data=>{
+      const snaps = (data.snapshots||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
+      const latest = snaps[snaps.length-1];
+      const lRates = latest.rates||{};
+      const toRMB = (v,ccy) => ccy==="RMB"?v:v*(lRates[ccy]||1);
+
+      const allKeys = new Set();
+      snaps.forEach(s=>Object.keys(s.holdings||{}).forEach(k=>allKeys.add(k)));
+
+      const items = [];
+      allKeys.forEach(key=>{
+        const h = latest.holdings[key];
+        if(!h || "raw" in h) return;
+        const group = KEY_GROUP[key] || "closed";
+        const ccy = h.ccy || "RMB";
+        const name = h.name || key;
+        const shares = h.shares||0, cost = h.cost||0;
+
+        if(shares > 0){
+          const px = (latest.prices[key]||{}).price || cost;
+          const mv = toRMB(shares*px,ccy), cRmb = toRMB(shares*cost,ccy);
+          items.push({key,name,group,shares,pl:mv-cRmb,plPct:cRmb?(mv-cRmb)/cRmb:0,status:"holding"});
+        } else {
+          let lc=0,ls=0;
+          for(let i=snaps.length-1;i>=0;i--){
+            const sh=(snaps[i].holdings||{})[key];
+            if(sh&&sh.shares>0){ls=sh.shares;lc=sh.cost||0;break;}
+          }
+          const cRmb=toRMB(ls*lc,ccy);
+          items.push({key,name,group,shares:0,pl:-cRmb,plPct:-1,status:"closed"});
+        }
+      });
+      items.sort((a,b)=>b.pl-a.pl);
+
+      // ---- 对冲概览 ----
+      const groupPL={};
+      Object.keys(GROUPS).forEach(g=>groupPL[g]={pl:0,items:[]});
+      items.forEach(it=>{if(groupPL[it.group])groupPL[it.group].pl+=it.pl;groupPL[it.group].items.push(it);});
+
+      const sideHTML=(gk,cls)=>{
+        const g=GROUPS[gk],d=groupPL[gk];
+        const vc=d.pl>=0?"ok-color":"danger-color";
+        const list=d.items.map(it=>`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;background:${it.pl>=0?'var(--ok)':'var(--danger)'}"></span>${it.name} <span class="num">${C.fmtK(it.pl)}</span>`).join("<br>");
+        return `<div class="hedge-side ${cls}" style="background:var(--bg-1);border:1px solid var(--line);border-radius:8px;padding:16px;${cls==='left'?'border-right:none':'border-left:none'}">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:600;margin-bottom:8px">${g.label}</div>
+          <div style="font-size:26px;font-weight:700;color:var(${d.pl>=0?'--ok':'--danger'})" class="num">${C.fmtK(d.pl)} RMB</div>
+          <div style="margin-top:10px;font-size:12px;color:var(--text-2);line-height:1.8">${list}</div>
+        </div>`;
+      };
+
+      const bearPL=groupPL.tencent.pl;
+      const hedgePL=groupPL.us_equity.pl+groupPL.gold.pl;
+      const overview = document.getElementById("hedge-overview");
+      if(overview) overview.innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;margin-bottom:16px;align-items:stretch">
+          ${sideHTML("tencent","left")}
+          <div style="display:flex;align-items:center;justify-content:center;background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-3);font-weight:600;letter-spacing:1px">VS</div>
+          ${(()=>{const usd=groupPL.us_equity,gold=groupPL.gold;
+            const list=[...usd.items,...gold.items].map(it=>`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;background:${it.pl>=0?'var(--ok)':'var(--danger)'}"></span>${it.name} <span class="num">${C.fmtK(it.pl)}</span>`).join("<br>");
+            return `<div class="hedge-side right" style="background:var(--bg-1);border:1px solid var(--line);border-radius:0 8px 8px 0;border-left:none;padding:16px">
+              <div style="font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:600;margin-bottom:8px">🛡️ 美股 + 黄金（对冲端）</div>
+              <div style="font-size:26px;font-weight:700;color:var(${hedgePL>=0?'--ok':'--danger'})" class="num">${C.fmtK(hedgePL)} RMB</div>
+              <div style="margin-top:10px;font-size:12px;color:var(--text-2);line-height:1.8">${list}</div>
+            </div>`;
+          })()}
+        </div>`;
+
+      // ---- 净对冲条 ----
+      const net=bearPL+hedgePL;
+      const maxA=Math.max(Math.abs(bearPL),Math.abs(hedgePL),1);
+      const posW=net>0?Math.min(50,(net/maxA)*50):0;
+      const negW=net<0?Math.min(50,(-net/maxA)*50):0;
+      const netEl = document.getElementById("hedge-net-card");
+      if(netEl) netEl.innerHTML=`
+        <div style="background:var(--bg-1);border:1px solid var(--line);border-radius:8px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;font-weight:600">净对冲效果（腾讯 + 美股黄金）</div>
+            <div style="font-size:20px;font-weight:700;color:var(${net>=0?'--ok':'--danger'})" class="num">${net>=0?"+":""}${C.fmtK(net)} RMB</div>
+          </div>
+          <div style="flex:1;min-width:200px;height:28px;background:var(--bg-3);border-radius:6px;position:relative;overflow:hidden">
+            <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--text-3)"></div>
+            ${net>0?`<div style="position:absolute;left:50%;top:0;bottom:0;width:${posW}%;background:rgba(122,160,122,.5);border-radius:0 4px 4px 0"></div>`:`<div style="position:absolute;right:50%;top:0;bottom:0;width:${negW}%;background:rgba(190,118,110,.5);border-radius:4px 0 0 4px"></div>`}
+          </div>
+          <div style="font-size:11px;color:var(--text-2);max-width:300px">${net<0?"⚠️ 对冲尚未完全覆盖腾讯亏损":"✅ 对冲端已反超腾讯亏损"}</div>
+        </div>`;
+
+      // ---- 排行表 ----
+      const maxPL=Math.max(...items.map(it=>Math.abs(it.pl)),1);
+      const rows=items.map(it=>{
+        const tag=TAG_CLASS[it.group]||"hedge-closed";
+        const gLabel=(GROUPS[it.group]?.label||"").split(" ").pop();
+        const cls=it.pl>0?"ok-color":(it.pl<0?"danger-color":"");
+        const sign=it.pl>=0?"+":"";
+        const barPct=(Math.abs(it.pl)/maxPL)*50;
+        const barDir=it.pl>=0?"left":"right";
+        const barColor=it.pl>=0?"rgba(122,160,122,.5)":"rgba(190,118,110,.5)";
+        return `<tr>
+          <td style="padding:8px 10px;background:var(--bg-1)"><span style="font-size:9px;padding:2px 5px;border-radius:3px;font-weight:600;background:var(--bg-3);border:1px solid var(--line);color:var(--text-2);margin-right:6px">${gLabel}</span>${it.name}</td>
+          <td style="padding:8px 10px;background:var(--bg-1);text-align:right" class="num">${it.status==="closed"?"—":it.shares.toLocaleString()}</td>
+          <td style="padding:8px 10px;background:var(--bg-1);text-align:right" class="num ${cls}">${sign}${C.fmt(Math.round(it.pl))}</td>
+          <td style="padding:8px 10px;background:var(--bg-1);text-align:right" class="num ${cls}">${it.status==="closed"?"已清仓":(it.plPct*100).toFixed(1)+"%"}</td>
+          <td style="padding:8px 10px;background:var(--bg-1);width:180px"><div style="height:16px;border-radius:3px;background:var(--bg-3);position:relative;overflow:hidden"><div style="position:absolute;top:0;bottom:0;${barDir}:0;width:${barPct}%;background:${barColor};border-radius:3px"></div></div></td>
+        </tr>`;
+      }).join("");
+      const rankEl = document.getElementById("hedge-ranking");
+      if(rankEl) rankEl.innerHTML=`<table style="width:100%;border-collapse:separate;border-spacing:0 3px"><thead><tr>
+        <th style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:600;text-align:left;padding:4px 10px">品种</th>
+        <th style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:600;text-align:right;padding:4px 10px">持仓</th>
+        <th style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:600;text-align:right;padding:4px 10px">盈亏</th>
+        <th style="font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--text-3);font-weight:600;text-align:right;padding:4px 10px">收益率</th>
+        <th></th>
+      </tr></thead><tbody>${rows}</tbody></table>`;
+
+      // ---- 对冲配对 ----
+      const findIt=k=>items.find(it=>it.key===k);
+      const tAll=items.filter(it=>it.group==="tencent"&&it.status==="holding");
+      const tencentAll={name:"腾讯合计",pl:tAll.reduce((a,it)=>a+it.pl,0)};
+      const pairs=[
+        {l:"tencent_futu",r:"voo",n:"腾讯富途 vs VOO 标普"},
+        {l:"tencent_zhongyin",r:"qqqm",n:"腾讯中银 vs QQQM 纳指"},
+        {l:"tencent_zhaoshang",r:"iau_gold",n:"腾讯招商 vs IAU 黄金"},
+        {l:null,r:"gold_etf_huaan",n:"腾讯全部 vs 518880 黄金"},
+      ];
+      const pairHTML=pairs.map(p=>{
+        const li=p.l?findIt(p.l):tencentAll;
+        const ri=findIt(p.r);
+        if(!li||!ri)return"";
+        const net2=li.pl+ri.pl;
+        return `<div style="background:var(--bg-1);border:1px solid var(--line);border-radius:8px;padding:14px 16px;margin-bottom:8px;display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center">
+          <div><div style="font-size:13px;font-weight:600">${li.name}</div><div style="font-size:18px;font-weight:700;color:var(${li.pl>=0?'--ok':'--danger'})" class="num">${C.fmtK(li.pl)}</div></div>
+          <div style="font-size:18px;color:var(--text-3)">⟷</div>
+          <div style="text-align:right"><div style="font-size:13px;font-weight:600">${ri.name}</div><div style="font-size:18px;font-weight:700;color:var(${ri.pl>=0?'--ok':'--danger'})" class="num">${C.fmtK(ri.pl)}</div></div>
+          <div style="font-size:12px;color:var(--text-2);text-align:center;grid-column:1/-1;border-top:1px dashed var(--line);padding-top:6px">对冲净值 <b class="num" style="color:var(${net2>=0?'--ok':'--danger'})">${net2>=0?"+":""}${C.fmtK(net2)}</b> · ${p.n}</div>
+        </div>`;
+      }).filter(Boolean).join("");
+      const pairEl = document.getElementById("hedge-pairs");
+      if(pairEl) pairEl.innerHTML=pairHTML;
+
+      // ---- 操作时间线 ----
+      const tl=[
+        {d:"2026-05-16",e:[{t:"buy",x:"建档：全品种首次录入"}]},
+        {d:"2026-05-28",e:[{t:"sell",x:"卖出 长江电力 100股@27.22"},{t:"buy",x:"买入 518880 10,900股@9.144"}]},
+        {d:"2026-06-02",e:[{t:"sell",x:"腾讯富途 -1,200股"},{t:"sell",x:"清仓 恒生科技 03032"},{t:"sell",x:"清仓 高股息 03483"}]},
+        {d:"2026-06-11",e:[{t:"buy",x:"加仓 518880 5,800股@8.530"}]},
+        {d:"2026-06-22",e:[{t:"sell",x:"清仓 512890 50,000股@1.112"},{t:"buy",x:"买入 563020 99,500股@1.1076"},{t:"buy",x:"买入 515450 81,000股@1.3617"}]},
+      ];
+      const tlHTML=tl.map(t=>{
+        const chips=t.e.map(e=>`<span style="font-size:11px;padding:3px 8px;border-radius:4px;background:var(--bg-1);border:1px solid ${e.t==='buy'?'rgba(122,160,122,.3)':'rgba(190,118,110,.3)'};color:var(${e.t==='buy'?'--ok':'--danger'})">${e.t==='buy'?'🟢':'🔴'} ${e.x}</span>`).join(" ");
+        return `<div style="display:grid;grid-template-columns:90px 1fr;gap:12px;margin-bottom:6px"><div style="font-size:11px;color:var(--text-3);font-family:'JetBrains Mono',monospace;padding-top:4px;text-align:right">${t.d}</div><div style="display:flex;flex-wrap:wrap;gap:4px">${chips}</div></div>`;
+      }).join("");
+      const tlEl = document.getElementById("hedge-timeline");
+      if(tlEl) tlEl.innerHTML=tlHTML;
+
+    }).catch(err=>{
+      console.error("对冲排行加载失败:",err);
+    });
+  };
 })();
