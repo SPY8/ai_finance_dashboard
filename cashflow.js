@@ -116,6 +116,10 @@
           sub: `刚性 ${fmtK(recurringAnnual)}/年 · 弹性 ${fmtK(totalExpenseProj)}/年`,
           help: "支出结构占比：刚性（recurring）与弹性（可变支出）各占总支出的比例",
           tone: "ok" },
+        { label: "月度净流出",       value: fmtK(totalExpense/12),
+          sub: `刚性 ${fmtK(recurringAnnual/12)}/月 · 弹性 ${fmtK(totalExpenseProj/12)}/月`,
+          help: "月度口径：把年化支出还原回 /12。刚性=房租/保险/车险等recurring；弹性=食品酒水/出行/购物等yearly大类",
+          tone: "ok" },
       ];
       $("#cash-kpis").innerHTML = kpis.map(k => `
         <div class="kpi ${k.tone}">
