@@ -267,7 +267,7 @@
           ${renderRedLineCard('单一公司持仓', rl.singleStockMaxPct, 0.05, '%', '腾讯等单一股票占比上限')}
           ${renderRedLineCard('RMB 占比红线', rl.rmbMaxPct, 0.70, '%', '人民币资产占比上限')}
           ${renderRedLineCard('RMB 目标占比', rl.rmbTargetPct, 0.60, '%', '人民币资产目标比例')}
-          ${renderRedLineCard('大类偏离阈值', rl.moduleDeviationDefault, 0.05, '%', '模块允许偏离范围')}
+          ${renderRedLineCard('象限偏离阈值', rl.moduleDeviationDefault, 0.05, '%', '标普象限允许偏离范围')}
         </div>
       </section>
     `;

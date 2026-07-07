@@ -350,14 +350,14 @@ window.AssetCore = (function () {
       });
     }
 
-    // 3. 大类偏离
+    // 3. 大类（标普象限）偏离
     cur.modules.forEach(function (m) {
       if (m.key === "_orphan") return;
       if (m.status === "over") {
         issues.push({
           level: "warn",
           category: "deviation",
-          title: m.name + " 大类超标",
+          title: m.name + " 象限超标",
           detail: `实际 ${(m.actualPct*100).toFixed(1)}% vs 目标 ${(m.targetPct*100).toFixed(0)}%（+${(m.delta*100).toFixed(1)}%）`,
           action: "季度末再平衡",
         });
@@ -365,9 +365,9 @@ window.AssetCore = (function () {
         issues.push({
           level: "warn",
           category: "deviation",
-          title: m.name + " 大类偏低",
+          title: m.name + " 象限偏低",
           detail: `实际 ${(m.actualPct*100).toFixed(1)}% vs 目标 ${(m.targetPct*100).toFixed(0)}%（${(m.delta*100).toFixed(1)}%）`,
-          action: "用新资金 / 卖出超标大类补仓",
+          action: "用新资金 / 卖出超标象限补仓",
         });
       }
     });

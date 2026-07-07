@@ -128,7 +128,7 @@ python3 -m http.server 8765</pre>
         tone: rmbPct > 0.70 ? "danger" : (rmbPct > 0.60 ? "warn" : "ok"),
       },
       {
-        label: "大类 / 子项告警",
+        label: "象限 / 子项告警",
         value: `${overModules+underModules} / ${overSubs+underSubs}`,
         sub: (overModules+underModules) === 0 ? "全部模块在阈值内" : `模块超${overModules} 偏低${underModules} · 子项超${overSubs} 偏低${underSubs}`,
         help: "告警数：超/偏低模块数 / 超/偏低子项数（基于阈值判定）",
@@ -498,9 +498,9 @@ python3 -m http.server 8765</pre>
     const rows = [];
     cur.modules.forEach(m => {
       const stateLabel = m.status === "over"
-        ? `<span class="chip danger">大类超标</span>`
+        ? `<span class="chip danger">象限超标</span>`
         : m.status === "under"
-          ? `<span class="chip warn">大类偏低</span>`
+          ? `<span class="chip warn">象限偏低</span>`
           : `<span class="chip ok">正常</span>`;
 
       // 1) 模块汇总行（独占一行，带高亮背景）
@@ -909,7 +909,7 @@ python3 -m http.server 8765</pre>
         <div class="hc-strip">
           <div class="hc-row ok">
             <span class="lvl">OK</span>
-            <span class="body"><b>全部健康</b>所有红线 / 大类阈值 / 待办均在控</span>
+            <span class="body"><b>全部健康</b>所有红线 / 象限阈值 / 待办均在控</span>
             <span class="action">继续季度复盘</span>
           </div>
         </div>`;
