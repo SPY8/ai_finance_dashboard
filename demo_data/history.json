@@ -58,9 +58,6 @@
         "us_treasury": {
           "raw": 1000
         },
-        "property_a": {
-          "raw": 1000000
-        },
         "voo": {
           "shares": 30,
           "cost": 520.0
@@ -96,6 +93,9 @@
         "etf_563020": {
           "shares": 12500,
           "cost": 1.1
+        },
+        "property_core": {
+          "raw": 1000000
         }
       }
     },
@@ -159,9 +159,6 @@
         "us_treasury": {
           "raw": 1500
         },
-        "property_a": {
-          "raw": 1050000
-        },
         "voo": {
           "shares": 40,
           "cost": 555.0
@@ -197,6 +194,9 @@
         "etf_563020": {
           "shares": 15000,
           "cost": 1.1
+        },
+        "property_core": {
+          "raw": 1050000
         }
       }
     },
@@ -260,9 +260,6 @@
         "us_treasury": {
           "raw": 2000
         },
-        "property_a": {
-          "raw": 1080000
-        },
         "voo": {
           "shares": 50,
           "cost": 580.0
@@ -298,6 +295,9 @@
         "etf_563020": {
           "shares": 16500,
           "cost": 1.1
+        },
+        "property_core": {
+          "raw": 1080000
         }
       }
     },
@@ -361,9 +361,6 @@
         "us_treasury": {
           "raw": 2000
         },
-        "property_a": {
-          "raw": 1100000
-        },
         "voo": {
           "shares": 60,
           "cost": 620.0
@@ -399,6 +396,9 @@
         "etf_563020": {
           "shares": 17500,
           "cost": 1.1
+        },
+        "property_core": {
+          "raw": 1100000
         }
       }
     }

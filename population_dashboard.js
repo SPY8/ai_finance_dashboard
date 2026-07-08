@@ -102,7 +102,7 @@
         snaps.forEach(s => {
           const rates = s.rates || {};
           let total = 0, offshore = 0, gold = 0, financial = 0;
-          const realEstateKeys = new Set(["property_a","property_b"]);
+          const realEstateKeys = new Set(["property_a","property_b","property_core","lishuiqiao_property"]);
           for (const [k, h] of Object.entries(s.holdings || {})) {
             const ccy = h.ccy || "RMB";
             const rate = ccy === "RMB" ? 1 : (rates[ccy] || 1);

@@ -273,12 +273,14 @@ window.AssetCore = (function () {
     });
 
     // 金融盘 vs 整体盘（剔除房产 + 待变现）
-    const realEstateKeys = new Set(["property_a","property_b"]);
+    // ponytail: 用 venue 判定房产而非硬编码 key 列表——key 各家不同（property_core / lishuiqiao_property），
+    // venue:"不动产" 是 target 里所有房产的稳定标记，改一处口径三处受益（见下方 weightedExpectedReturn）
+    const isRealEstate = function (s) { return s.venue === "不动产"; };
     let financialTotal = 0;
     modules.forEach(function (m) {
       if (m.key === "_orphan") return;
       m.subs.forEach(function (s) {
-        if (realEstateKeys.has(s.key)) return;
+        if (isRealEstate(s)) return;
         financialTotal += s.rmb;
       });
     });
@@ -289,12 +291,13 @@ window.AssetCore = (function () {
   // ========== 加权预期年化 ==========
   function weightedExpectedReturn(cur, scenario, opts) {
     opts = opts || {};
-    const realEstateKeys = new Set(["property_a","property_b"]);
+    const realEstateKeys = new Set(["property_a","property_b"]); // 兼容旧调用；venue 判定见 enrichSnapshot
+    const isRealEstate = function (s) { return s.venue === "不动产" || realEstateKeys.has(s.key); };
     let weighted = 0, totalW = 0;
     cur.modules.forEach(function (m) {
       if (m.key === "_orphan" && opts.excludeOrphan !== false) return;
       m.subs.forEach(function (s) {
-        if (opts.excludeRealEstate && realEstateKeys.has(s.key)) return;
+        if (opts.excludeRealEstate && isRealEstate(s)) return;
         const er = s.expectedReturn && s.expectedReturn[scenario];
         if (er != null && s.rmb > 0) {
           weighted += er * s.rmb;
