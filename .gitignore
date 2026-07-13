@@ -27,3 +27,6 @@ node_modules/
 !CLAUDE.md
 # skills/ 下的 SOP 文档随项目入库（给协作 AI 用）
 !skills/*.md
+
+# Claude Code worktrees（本地临时工作树，绝不入库）
+.claude/worktrees/
