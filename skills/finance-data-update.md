@@ -16,17 +16,17 @@ updated: 2026-06-28
 
 ## 🟢 快速通道（90% 的「报数」走这里）
 
-用户说「今天微众活期 X 万、富途货基 Y 美元、腾讯现价 Z……」这类**只是更新数值**的场景，**一律走脚本**，不要手改 `history.json`：
+用户说「今天微众活期 X 万、富途货基 Y 美元、港股现价 Z……」这类**只是更新数值**的场景，**一律走脚本**，不要手改 `history.json`：
 
 ```bash
 # 1. 先看有哪些 key 能报（不写任何东西）
 python3 scripts/add_snapshot.py --show-keys
 
-# 2. 报数（按需 --set，可多个；腾讯三账户报一个价会自动同步）
+# 2. 报数（按需 --set，可多个）
 python3 scripts/add_snapshot.py \
     --set weizhong_demand.raw=85000 \
     --set voo.price=685 \
-    --set tencent_futu.price=460 \
+    --set hk_xxx.price=460 \
     --deposit 20000 \
     --comment "6 月底常规报数"
 
@@ -40,7 +40,7 @@ node scripts/validate_data.mjs
 **`--set key.field=value` 字段**：
 - `raw` 现金类原币种金额
 - `shares` / `cost` 证券股数 / 每股成本
-- `price` 当前股价（腾讯三账户共享，报一个即可）
+- `price` 当前股价
 
 ---
 

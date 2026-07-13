@@ -17,11 +17,11 @@
     # 看有哪些 key 可以报（不写任何东西）
     python3 scripts/add_snapshot.py --show-keys
 
-    # 报数：微众活期 8.5 万、VOO 现价 685、腾讯现价 460（三账户自动同步）
+    # 报数：微众活期 8.5 万、VOO 现价 685、港股现价 460
     python3 scripts/add_snapshot.py \\
         --set weizhong_demand.raw=85000 \\
         --set voo.price=685 \\
-        --set tencent_futu.price=460 \\
+        --set hk_xxx.price=460 \\
         --deposit 20000 \\
         --comment "6 月底常规报数"
 
@@ -33,10 +33,7 @@
       - raw            现金类持仓的原币种金额（写入 holdings[key].raw）
       - shares / cost  证券类持仓的股数 / 每股成本（写入 holdings[key]）
       - price          当前股价（写入 prices[key].price）
-    key 为持仓代码（如 voo / tencent_futu / weizhong_demand），见 --show-keys。
-
-腾讯共享价：任一 tencent_* 的 price 被设置时，自动同步到 tencent_futu /
-tencent_zhongyin / tencent_zhaoshang 三个账户（它们是同一只股票）。
+    key 为持仓代码（如 voo / weizhong_demand），见 --show-keys。
 """
 from __future__ import annotations
 
@@ -52,7 +49,6 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 BASE = SCRIPT_DIR.parent  # 项目根
 VALID_FIELDS = {"raw", "shares", "cost", "price"}
-TENCENT_KEYS = ["tencent_futu", "tencent_zhongyin", "tencent_zhaoshang"]
 RATES_URL = "https://open.er-api.com/v6/latest/USD"
 
 
@@ -96,7 +92,7 @@ def build_ccy_map(target: dict, last_prices: dict) -> dict:
 
 
 def parse_set(expr: str):
-    """'tencent_futu.shares=50' -> ('tencent_futu', 'shares', 50.0)"""
+    """'voo.shares=50' -> ('voo', 'shares', 50.0)"""
     if "=" not in expr:
         die(f"--set 语法错误：{expr}（应为 key.field=value）")
     lhs, rhs = expr.split("=", 1)
@@ -217,13 +213,6 @@ def main():
             new_prices.setdefault(key, {})["ccy"] = ccy
             new_prices[key]["price"] = value
             changed.append(f"{key}.price={value} ({ccy})")
-            # 腾讯三账户共享价
-            if key in TENCENT_KEYS:
-                for tk in TENCENT_KEYS:
-                    if tk == key:
-                        continue
-                    new_prices.setdefault(tk, {"ccy": "HKD"})["price"] = value
-                changed.append("↳ 已同步腾讯另两个账户的价")
         else:  # raw / shares / cost
             new_holdings.setdefault(key, {})[field] = value
             changed.append(f"{key}.{field}={value}")

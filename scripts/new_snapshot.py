@@ -67,7 +67,6 @@ def main():
         ("qqqm", "USD", "QQQM 纳指"),
         ("brk_b", "USD", "BRK.B 伯克希尔"),
         ("iau_gold", "USD", "IAU 黄金"),
-        ("tencent_futu", "HKD", "腾讯（富途/中银/招商共用价）"),
         ("hstech", "HKD", "恒生科技 03032"),
         ("hsi_dividend_efund", "HKD", "易方达亚太高股息 03483"),
         ("etf_515450", "RMB", "大盘红利低波 515450"),
@@ -93,10 +92,6 @@ def main():
                 snap["prices"][k] = {"ccy": ccy, "price": float(v) if v else last_p}
             except ValueError:
                 snap["prices"][k] = {"ccy": ccy, "price": last_p}
-        # 腾讯共享价
-        tprice = snap["prices"]["tencent_futu"]["price"]
-        snap["prices"]["tencent_zhongyin"]  = {"ccy": "HKD", "price": tprice}
-        snap["prices"]["tencent_zhaoshang"] = {"ccy": "HKD", "price": tprice}
 
     # holdings 沿用上次
     snap["holdings"] = last_holdings

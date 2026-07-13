@@ -45,14 +45,13 @@
       const prev = idx > 0 ? enriched[idx-1] : null;
       renderHeader(cur, target);
       renderHealthCheck(cur, target);
-      renderTencentLadder(cur);
       renderReconcile(prev, cur);
       renderKPIs(cur, prev, target);
       renderCoastCard(cur, target);
       renderModules(cur);
       renderAlerts(cur);
       renderCurrency(cur, target);
-      renderTrends(enriched, dateKey);
+      renderTrends(enriched, dateKey, target);
       renderTimeline(enriched, dateKey, picker);
       renderPools(cur, target);
       renderGrowthProjection(cur, target);
@@ -87,10 +86,25 @@ python3 -m http.server 8765</pre>
     const total = cur.total;
     const financialTotal = cur.financialTotal || 0;
     const rmbPct = total > 0 ? cur.ccyTotals.RMB / total : 0;
-    const tencentSubs = cur.modules.flatMap(m => m.subs).filter(s => /^tencent_/.test(s.key) || s.key === "tencent");
-    const tencentRMB = tencentSubs.reduce((a,s)=>a+s.rmb,0);
-    const tencentPct = total > 0 ? tencentRMB / total : 0;
     const redLine = target.redLines?.singleStockMaxPct ?? 0.05;
+    // 单一公司敞口：按 target.redLines.singleStockGroups 聚合；未配置则取 rmb 最大的单个 sub
+    const stockGroups = target.redLines?.singleStockGroups || [];
+    const groupREs = stockGroups.map(g => new RegExp("^" + g));
+    let singleRMB = 0, singleName = "单一持仓";
+    if (stockGroups.length) {
+      cur.modules.flatMap(m=>m.subs).forEach(s => {
+        for (let i = 0; i < groupREs.length; i++) {
+          if (groupREs[i].test(s.key)) { singleRMB += s.rmb; singleName = stockGroups[i] + "* 合计"; break; }
+        }
+      });
+    } else {
+      let max = 0;
+      cur.modules.flatMap(m=>m.subs).forEach(s => {
+        if (s.key === "_orphan" || s.status === "planned") return;
+        if (s.rmb > max) { max = s.rmb; singleRMB = s.rmb; singleName = s.name; }
+      });
+    }
+    const singlePct = total > 0 ? singleRMB / total : 0;
 
     const deltaTotal = prev ? (total - prev.total) : 0;
     const deltaPct   = prev && prev.total ? (total - prev.total) / prev.total : 0;
@@ -114,11 +128,11 @@ python3 -m http.server 8765</pre>
         tone: "ok",
       },
       {
-        label: "腾讯单一敞口",
-        value: pct(tencentPct, 1),
-        sub: `红线 ≤ ${pct(redLine,0)} · ${fmtK(tencentRMB)} RMB`,
-        help: "合并所有腾讯子项后占总盘比例；用于检查单一公司红线（默认5%）",
-        tone: tencentPct > redLine ? "danger" : "ok",
+        label: "单一公司敞口",
+        value: pct(singlePct, 1),
+        sub: `红线 ≤ ${pct(redLine,0)} · ${singleName} · ${fmtK(singleRMB)} RMB`,
+        help: "占总盘最大的单一公司/分组占比；用于检查单一公司红线（默认5%）",
+        tone: singlePct > redLine ? "danger" : "ok",
       },
       {
         label: "RMB 占比",
@@ -569,26 +583,43 @@ python3 -m http.server 8765</pre>
 
   // ---- 趋势卡（ECharts 版本）----
   let trendCharts = [];
-  function renderTrends(enriched, activeDate) {
+  function renderTrends(enriched, activeDate, target) {
     // 清理旧图表
     trendCharts.forEach(c => c.dispose());
     trendCharts = [];
 
     const dates = enriched.map(s => s.date);
+    // 单一公司敞口序列：按 target.redLines.singleStockGroups 聚合；未配置则取每期最大单一 sub
+    const stockGroups = (target.redLines && target.redLines.singleStockGroups) || [];
+    const groupREs = stockGroups.map(g => new RegExp("^" + g));
+    const singleStockSeries = enriched.map(s => {
+      if (!s.total) return 0;
+      if (stockGroups.length) {
+        let sum = 0;
+        s.modules.flatMap(m=>m.subs).forEach(x => {
+          for (let i = 0; i < groupREs.length; i++) {
+            if (groupREs[i].test(x.key)) { sum += x.rmb; break; }
+          }
+        });
+        return sum / s.total;
+      }
+      let max = 0;
+      s.modules.flatMap(m=>m.subs).forEach(x => {
+        if (x.key === "_orphan" || x.status === "planned") return;
+        if (x.rmb > max) max = x.rmb;
+      });
+      return max / s.total;
+    });
     const series = {
       total:    enriched.map(s => s.total),
       rmbPct:   enriched.map(s => s.total ? s.ccyTotals.RMB / s.total : 0),
-      tencent:  enriched.map(s => {
-        const ts = s.modules.flatMap(m=>m.subs).filter(x => /^tencent_/.test(x.key) || x.key === "tencent");
-        const sum = ts.reduce((a,x)=>a+x.rmb,0);
-        return s.total ? sum / s.total : 0;
-      }),
+      single:   singleStockSeries,
       modOver:  enriched.map(s => s.modules.filter(m=>m.status!=="ok").length),
     };
     const cards = [
       { name:"金融资产总值 (RMB)", value:fmtK(series.total[series.total.length-1]), data:series.total, fmt:fmtK, color:"#7aa2ff", isPct:false },
       { name:"RMB 占比", value:pct(series.rmbPct[series.rmbPct.length-1],1), data:series.rmbPct, fmt:v=>pct(v,1), color:"#5b8bff", isPct:true, refLine:0.70 },
-      { name:"腾讯单一敞口", value:pct(series.tencent[series.tencent.length-1],1), data:series.tencent, fmt:v=>pct(v,1), color:"#ff5c7a", isPct:true, refLine:0.05 },
+      { name:"单一公司敞口", value:pct(series.single[series.single.length-1],1), data:series.single, fmt:v=>pct(v,1), color:"#ff5c7a", isPct:true, refLine:0.05 },
       { name:"模块告警数", value:String(series.modOver[series.modOver.length-1]), data:series.modOver, fmt:v=>String(v|0), color:"#ffb454", isPct:false },
     ];
 
@@ -925,139 +956,6 @@ python3 -m http.server 8765</pre>
     `).join("")}</div>`;
   }
 
-  // ---- 腾讯减仓阶梯（ECharts 版本）----
-  let tencentLadderChart = null;
-  function renderTencentLadder(cur) {
-    const root = $("#tencent-ladder");
-    if (!root) return;
-    const tencentSubs = cur.modules.flatMap(m => m.subs).filter(s => /^tencent_/.test(s.key) || s.key === "tencent");
-    if (tencentSubs.length === 0) { root.innerHTML = ""; return; }
-    const tprice = (cur.prices && cur.prices.tencent_futu && cur.prices.tencent_futu.price) || tencentSubs[0].price;
-    if (!tprice) { root.innerHTML = ""; return; }
-    const totalShares = tencentSubs.reduce((a,s) => a + (s.shares || 0), 0);
-    const totalRMB    = tencentSubs.reduce((a,s) => a + s.rmb, 0);
-    const tencentPct  = cur.total > 0 ? totalRMB / cur.total : 0;
-
-    const ladders = [
-      { type:"attack",  label:"进攻 1",  trigger: 500, action:"富途 -1,500", color: "#3ddc97" },
-      { type:"attack",  label:"进攻 2",  trigger: 580, action:"富途 -1,500", color: "#3ddc97" },
-      { type:"attack",  label:"进攻 3",  trigger: 680, action:"富途清仓 -2,385", color: "#3ddc97" },
-      { type:"defend",  label:"防御 1",  trigger: 420, action:"富途 -1,800", color: "#ffb454" },
-      { type:"redline", label:"红线",    trigger: 380, action:"非主仓清完",   color: "#ff5c7a" },
-    ];
-
-    const allPrices = ladders.map(l => l.trigger).concat([tprice]);
-    const minP = Math.min(...allPrices) * 0.9;
-    const maxP = Math.max(...allPrices) * 1.1;
-
-    root.innerHTML = `
-      <div class="lia-card" style="margin-bottom:18px">
-        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;flex-wrap:wrap;gap:10px">
-          <div>
-            <span style="font-weight:600;font-size:14px">📍 腾讯减仓阶梯</span>
-            <span style="color:var(--text-2);font-size:12px;margin-left:8px">合计 ${fmt(totalShares)} 股 · ${pct(tencentPct,1)} 占比</span>
-          </div>
-          <a href="../腾讯减仓阶梯_2026-05-16.md" style="color:var(--accent);font-size:11px;text-decoration:none">📄 查看完整方案</a>
-        </div>
-        <div id="tencent-ladder-chart" style="width:100%;height:120px;"></div>
-        <div style="font-size:11px;color:var(--text-2);text-align:right;margin-top:8px">${getNextTrigger(tprice, ladders)}</div>
-      </div>
-    `;
-
-    const chartDom = root.querySelector('#tencent-ladder-chart');
-    if (tencentLadderChart) tencentLadderChart.dispose();
-    tencentLadderChart = echarts.init(chartDom, C.getEchartsTheme());
-    window.AssetCore.registerChart(tencentLadderChart);
-
-    const option = {
-      backgroundColor: 'transparent',
-      grid: { top: 30, right: 30, bottom: 30, left: 30 },
-      tooltip: {
-        trigger: 'item',
-        backgroundColor: 'rgba(19, 23, 31, 0.95)',
-        borderColor: '#1f2533',
-        textStyle: { color: '#e8ecf3', fontSize: 11 },
-        formatter: (params) => {
-          if (params.componentType === 'markLine') {
-            const l = ladders.find(x => x.trigger === params.value);
-            return `<div style="font-family:'JetBrains Mono',monospace">
-              <div style="color:${l.color};font-weight:600">${l.label}</div>
-              <div>触发价: <b>${l.trigger} HKD</b></div>
-              <div style="color:#9ba4b6;font-size:10px;margin-top:4px">${l.action}</div>
-            </div>`;
-          }
-          return `<div style="font-family:'JetBrains Mono',monospace">
-            <div style="color:#7aa2ff;font-weight:600">当前价格</div>
-            <div><b>${tprice} HKD</b></div>
-          </div>`;
-        }
-      },
-      xAxis: {
-        type: 'value',
-        min: minP,
-        max: maxP,
-        axisLine: { lineStyle: { color: '#1f2533' } },
-        axisLabel: { color: '#5e677a', fontSize: 10, fontFamily: 'JetBrains Mono' },
-        splitLine: { show: false },
-        axisTick: { show: false }
-      },
-      yAxis: {
-        type: 'value',
-        show: false,
-        min: 0,
-        max: 1
-      },
-      series: [
-        {
-          type: 'scatter',
-          data: [[tprice, 0.5]],
-          symbolSize: 20,
-          itemStyle: { color: '#7aa2ff', borderColor: '#fff', borderWidth: 2 },
-          label: {
-            show: true,
-            position: 'top',
-            formatter: `现价 ${tprice}`,
-            color: '#7aa2ff',
-            fontFamily: 'JetBrains Mono',
-            fontSize: 11,
-            fontWeight: 'bold'
-          }
-        },
-        {
-          type: 'line',
-          data: [],
-          markLine: {
-            symbol: 'none',
-            label: {
-              position: 'start',
-              formatter: '{b}',
-              color: '#9ba4b6',
-              fontSize: 10,
-              fontFamily: 'JetBrains Mono'
-            },
-            lineStyle: { type: 'dashed', width: 1.5 },
-            data: ladders.map(l => ({
-              xAxis: l.trigger,
-              name: l.label,
-              lineStyle: { color: l.color },
-              label: { color: l.color }
-            }))
-          }
-        }
-      ]
-    };
-    tencentLadderChart.setOption(option);
-  }
-  function getNextTrigger(price, ladders) {
-    const upcoming = ladders.filter(l => l.type === "attack" && l.trigger > price).sort((a,b) => a.trigger - b.trigger);
-    const downcoming = ladders.filter(l => (l.type === "defend" || l.type === "redline") && l.trigger < price).sort((a,b) => b.trigger - a.trigger);
-    const u = upcoming[0], d = downcoming[0];
-    const parts = [];
-    if (u) parts.push(`📈 涨到 ${u.trigger} 触发 ${u.label} — 还需 +${((u.trigger-price)/price*100).toFixed(1)}%`);
-    if (d) parts.push(`📉 跌到 ${d.trigger} 触发 ${d.label} — 还需 ${((d.trigger-price)/price*100).toFixed(1)}%`);
-    return parts.join(" · ") || "✅ 已超出所有阶梯";
-  }
-
   // ---- 资产 vs 现金流对账 ----
   function renderReconcile(prev, cur) {
     const root = $("#reconcile-bar");
@@ -1122,14 +1020,17 @@ python3 -m http.server 8765</pre>
     _hedgeRendered = true;
 
     const GROUPS = {
-      tencent:  { label:"🐉 腾讯·港股集中", color:"#a48cbc" },
+      hk_conc:  { label:"🐉 港股·集中仓",  color:"#a48cbc" },
       us_equity:{ label:"🇺🇸 美股·全球增长", color:"#7aa07a" },
       gold:     { label:"🥇 黄金·避险对冲", color:"#b69462" },
       div_rmb:  { label:"🇨🇳 红利·防御收入", color:"#7d8fb8" },
       closed:   { label:"🔴 已清仓",        color:"#6f6052" },
     };
+    // ponytail: 港股集中仓按 key 前缀动态归类，避免写死个股
+    const HK_GROUP_PREFIXES = ["hk_", "tencent_", "hs_", "hangseng_"];
+    const isHK = key => HK_GROUP_PREFIXES.some(p => key.startsWith(p));
+    // KEY_GROUP 提供显式归类；未列出的港股 key 运行时归入 hk_conc
     const KEY_GROUP = {
-      tencent_futu:"tencent", tencent_zhongyin:"tencent", tencent_zhaoshang:"tencent",
       hstech:"closed", hsi_dividend_efund:"closed",
       voo:"us_equity", qqqm:"us_equity", brk_b:"us_equity",
       iau_gold:"gold", gold_etf_huaan:"gold",
@@ -1137,7 +1038,7 @@ python3 -m http.server 8765</pre>
       high_div_bluechip:"closed",
     };
     const TAG_CLASS = {
-      tencent:"hedge-hk", us_equity:"hedge-usd", gold:"hedge-gold",
+      hk_conc:"hedge-hk", us_equity:"hedge-usd", gold:"hedge-gold",
       div_rmb:"hedge-div", closed:"hedge-closed"
     };
 
@@ -1154,7 +1055,7 @@ python3 -m http.server 8765</pre>
       allKeys.forEach(key=>{
         const h = latest.holdings[key];
         if(!h || "raw" in h) return;
-        const group = KEY_GROUP[key] || "closed";
+        const group = KEY_GROUP[key] || (isHK(key) ? "hk_conc" : "closed");
         const ccy = h.ccy || "RMB";
         const name = h.name || key;
         const shares = h.shares||0, cost = h.cost||0;
@@ -1191,12 +1092,12 @@ python3 -m http.server 8765</pre>
         </div>`;
       };
 
-      const bearPL=groupPL.tencent.pl;
+      const bearPL=groupPL.hk_conc.pl;
       const hedgePL=groupPL.us_equity.pl+groupPL.gold.pl;
       const overview = document.getElementById("hedge-overview");
       if(overview) overview.innerHTML = `
         <div style="display:grid;grid-template-columns:1fr 60px 1fr;gap:0;margin-bottom:16px;align-items:stretch">
-          ${sideHTML("tencent","left")}
+          ${sideHTML("hk_conc","left")}
           <div style="display:flex;align-items:center;justify-content:center;background:var(--bg-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line);font-size:11px;color:var(--text-3);font-weight:600;letter-spacing:1px">VS</div>
           ${(()=>{const usd=groupPL.us_equity,gold=groupPL.gold;
             const list=[...usd.items,...gold.items].map(it=>`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px;background:${it.pl>=0?'var(--ok)':'var(--danger)'}"></span>${it.name} <span class="num">${C.fmtK(it.pl)}</span>`).join("<br>");
@@ -1217,14 +1118,14 @@ python3 -m http.server 8765</pre>
       if(netEl) netEl.innerHTML=`
         <div style="background:var(--bg-1);border:1px solid var(--line);border-radius:8px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
           <div>
-            <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;font-weight:600">净对冲效果（腾讯 + 美股黄金）</div>
+            <div style="font-size:11px;color:var(--text-3);text-transform:uppercase;letter-spacing:.5px;font-weight:600">净对冲效果（港股集中 + 美股黄金）</div>
             <div style="font-size:20px;font-weight:700;color:var(${net>=0?'--ok':'--danger'})" class="num">${net>=0?"+":""}${C.fmtK(net)} RMB</div>
           </div>
           <div style="flex:1;min-width:200px;height:28px;background:var(--bg-3);border-radius:6px;position:relative;overflow:hidden">
             <div style="position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--text-3)"></div>
             ${net>0?`<div style="position:absolute;left:50%;top:0;bottom:0;width:${posW}%;background:rgba(122,160,122,.5);border-radius:0 4px 4px 0"></div>`:`<div style="position:absolute;right:50%;top:0;bottom:0;width:${negW}%;background:rgba(190,118,110,.5);border-radius:4px 0 0 4px"></div>`}
           </div>
-          <div style="font-size:11px;color:var(--text-2);max-width:300px">${net<0?"⚠️ 对冲尚未完全覆盖腾讯亏损":"✅ 对冲端已反超腾讯亏损"}</div>
+          <div style="font-size:11px;color:var(--text-2);max-width:300px">${net<0?"⚠️ 对冲尚未完全覆盖港股集中仓亏损":"✅ 对冲端已反超港股集中仓亏损"}</div>
         </div>`;
 
       // ---- 排行表 ----
@@ -1254,18 +1155,18 @@ python3 -m http.server 8765</pre>
         <th></th>
       </tr></thead><tbody>${rows}</tbody></table>`;
 
-      // ---- 对冲配对 ----
+      // ---- 对冲配对（集中仓合计 vs 美股/黄金对冲端）----
       const findIt=k=>items.find(it=>it.key===k);
-      const tAll=items.filter(it=>it.group==="tencent"&&it.status==="holding");
-      const tencentAll={name:"腾讯合计",pl:tAll.reduce((a,it)=>a+it.pl,0)};
+      const hkAll=items.filter(it=>it.group==="hk_conc"&&it.status==="holding");
+      const hkAgg={name:"港股集中仓合计",pl:hkAll.reduce((a,it)=>a+it.pl,0)};
       const pairs=[
-        {l:"tencent_futu",r:"voo",n:"腾讯富途 vs VOO 标普"},
-        {l:"tencent_zhongyin",r:"qqqm",n:"腾讯中银 vs QQQM 纳指"},
-        {l:"tencent_zhaoshang",r:"iau_gold",n:"腾讯招商 vs IAU 黄金"},
-        {l:null,r:"gold_etf_huaan",n:"腾讯全部 vs 518880 黄金"},
+        {l:null,r:"voo",n:"港股集中 vs VOO 标普"},
+        {l:null,r:"qqqm",n:"港股集中 vs QQQM 纳指"},
+        {l:null,r:"iau_gold",n:"港股集中 vs IAU 黄金"},
+        {l:null,r:"gold_etf_huaan",n:"港股集中 vs 518880 黄金"},
       ];
       const pairHTML=pairs.map(p=>{
-        const li=p.l?findIt(p.l):tencentAll;
+        const li=p.l?findIt(p.l):hkAgg;
         const ri=findIt(p.r);
         if(!li||!ri)return"";
         const net2=li.pl+ri.pl;
@@ -1283,7 +1184,7 @@ python3 -m http.server 8765</pre>
       const tl=[
         {d:"2026-05-16",e:[{t:"buy",x:"建档：全品种首次录入"}]},
         {d:"2026-05-28",e:[{t:"sell",x:"卖出 长江电力 100股@27.22"},{t:"buy",x:"买入 518880 10,900股@9.144"}]},
-        {d:"2026-06-02",e:[{t:"sell",x:"腾讯富途 -1,200股"},{t:"sell",x:"清仓 恒生科技 03032"},{t:"sell",x:"清仓 高股息 03483"}]},
+        {d:"2026-06-02",e:[{t:"sell",x:"港股集中 -1,200股"},{t:"sell",x:"清仓 恒生科技 03032"},{t:"sell",x:"清仓 高股息 03483"}]},
         {d:"2026-06-11",e:[{t:"buy",x:"加仓 518880 5,800股@8.530"}]},
         {d:"2026-06-22",e:[{t:"sell",x:"清仓 512890 50,000股@1.112"},{t:"buy",x:"买入 563020 99,500股@1.1076"},{t:"buy",x:"买入 515450 81,000股@1.3617"}]},
       ];

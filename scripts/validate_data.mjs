@@ -7,7 +7,7 @@
  *   - 快照时序：snapshots 是否按 date 升序、有无重复日期
  *   - 持仓 key 缩水：最新快照的 holdings key 数是否比上一条显著变少（疑似漏继承）
  *   - target 权重和：大类 targetPct 之和 == 100%、子项之和 == 大类（core.runAssertions）
- *   - 红线/告警：core.healthCheck（腾讯敞口 / RMB 占比 / 大类偏离）
+ *   - 红线/告警：core.healthCheck（单一公司敞口 / RMB 占比 / 大类偏离）
  *
  * 退出码：
  *   0  通过（可能有 warn/info 提示，不致命）

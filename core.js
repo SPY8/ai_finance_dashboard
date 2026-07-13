@@ -316,21 +316,35 @@ window.AssetCore = (function () {
     const rmbPct = total > 0 ? ccyTotals.RMB / total : 0;
     const redLine = (target.redLines && target.redLines.singleStockMaxPct) || 0.05;
 
-    // 1. 单一公司红线（腾讯合并）
-    let tencentRMB = 0;
-    cur.modules.forEach(function (m) {
-      m.subs.forEach(function (s) {
-        if (/^tencent_/.test(s.key) || s.key === "tencent") tencentRMB += s.rmb;
+    // 1. 单一公司红线（按 target.redLines.singleStockGroups 聚合；未配置则取占总盘最大的单个 sub）
+    const stockGroups = (target.redLines && target.redLines.singleStockGroups) || [];
+    const groupREs = stockGroups.map(g => new RegExp("^" + g));
+    let aggRMB = 0, aggName = "单一持仓";
+    if (stockGroups.length) {
+      cur.modules.forEach(function (m) {
+        m.subs.forEach(function (s) {
+          for (let i = 0; i < groupREs.length; i++) {
+            if (groupREs[i].test(s.key)) { aggRMB += s.rmb; aggName = stockGroups[i] + "* 合计"; break; }
+          }
+        });
       });
-    });
-    const tencentPct = total > 0 ? tencentRMB / total : 0;
-    if (tencentPct > redLine) {
+    } else {
+      let max = 0;
+      cur.modules.forEach(function (m) {
+        m.subs.forEach(function (s) {
+          if (s.key === "_orphan" || s.status === "planned") return;
+          if (s.rmb > max) { max = s.rmb; aggRMB = s.rmb; aggName = s.name; }
+        });
+      });
+    }
+    const aggPct = total > 0 ? aggRMB / total : 0;
+    if (aggPct > redLine) {
       issues.push({
         level: "danger",
         category: "red_line",
-        title: "腾讯单一敞口超红线",
-        detail: `${(tencentPct*100).toFixed(1)}% > ${(redLine*100).toFixed(0)}%（机构标准）。当前 ${fmtK(tencentRMB)} RMB，需减到 ${fmtK(total*redLine)} 以下。`,
-        action: "执行《腾讯减仓阶梯_2026-05-16》触发档位",
+        title: "单一公司敞口超红线",
+        detail: `${aggName} ${(aggPct*100).toFixed(1)}% > ${(redLine*100).toFixed(0)}%（机构标准）。当前 ${fmtK(aggRMB)} RMB，需减到 ${fmtK(total*redLine)} 以下。`,
+        action: "触发减仓阶梯 / 移至对冲端（海外资产）",
       });
     }
 
@@ -341,7 +355,7 @@ window.AssetCore = (function () {
         category: "red_line",
         title: "RMB 占比超红线",
         detail: `${(rmbPct*100).toFixed(1)}% > ${((target.redLines.rmbMaxPct||0.70)*100).toFixed(0)}%。`,
-        action: "卖房款到账后优先购汇/港股通腾讯转 USD 资产",
+        action: "卖房款到账后优先购汇 / 港股通转 USD 资产",
       });
     } else if (rmbPct > ((target.redLines && target.redLines.rmbTargetPct) || 0.60)) {
       issues.push({

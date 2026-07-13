@@ -81,11 +81,11 @@
     const toRMB = (amt, ccy) => amt * (ccy === "RMB" ? 1 : (rates[ccy] || 1));
     const results = [];
 
-    // 港股通持仓（腾讯）
-    const hkexPositions = holdings.filter(h => 
+    // 港股通持仓（按 venue 识别，非H股/红筹按 20%）
+    const hkexPositions = holdings.filter(h =>
       h.venue?.includes('港股通') || h.venue?.includes('中银') || h.venue?.includes('招商')
     );
-    
+
     if (hkexPositions.length > 0) {
       const hkexResult = {
         account: "港股通（中银/招商）",
@@ -93,19 +93,19 @@
         dividendTax: 0,
         stampDutyEstimate: 0
       };
-      
+
       hkexPositions.forEach(pos => {
-        // 腾讯是红筹股，非H股，红利税20%
-        const isHShare = false; // 腾讯不是H股
+        // 非H股（红筹/其他）港股通红利税 20%；H股 10%
+        const isHShare = !!pos.isHShare;
         const dividendRate = isHShare ? TaxRules.hkex_connect.dividend.h_shares : TaxRules.hkex_connect.dividend.non_h_shares;
-        
-        // 假设股息率 0.4%（腾讯近年股息率较低）
+
+        // 假设股息率 0.4%（保守估计，港股近年股息率偏低）
         const estimatedDividend = pos.rmb * 0.004;
         const dividendTax = estimatedDividend * dividendRate;
-        
+
         // 卖出印花税估算（假设卖出）
         const stampDuty = pos.rmb * TaxRules.hkex_connect.stamp_duty.rate;
-        
+
         hkexResult.positions.push({
           name: pos.name,
           shares: pos.shares,
@@ -393,7 +393,7 @@
         <div class="lia-card" style="margin-bottom:14px;border-left:3px solid var(--ok)">
           <h3 style="margin:0 0 10px;font-size:13px;color:var(--ok)">💡 税务优化建议</h3>
           <ul style="margin:0;padding-left:18px;color:var(--text-1);font-size:12px;line-height:1.8">
-            <li><b>港股通 vs 富途港股：</b>腾讯等非H股在港股通红利税20%，富途仅10%。长期持有可考虑转至富途（但需权衡通道费）</li>
+            <li><b>港股通 vs 富途港股：</b>非H股（红筹等）在港股通红利税20%，富途仅10%。长期持有可考虑转至富途（但需权衡通道费）</li>
             <li><b>美股股息：</b>确保填写W-8BEN表格，享受中美协定10%税率（否则30%）</li>
             <li><b>资本利得：</b>港股和美股对非税务居民均免资本利得税，可放心做再平衡</li>
             <li><b>美国国债：</b>利息预扣税30%，可考虑用IRA结构或换其他低税债券</li>

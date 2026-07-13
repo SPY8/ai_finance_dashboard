@@ -264,7 +264,7 @@
       <section>
         <h2>🛑 红线参数仪表盘<span class="hint">关键风险控制阈值</span></h2>
         <div class="redlines-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
-          ${renderRedLineCard('单一公司持仓', rl.singleStockMaxPct, 0.05, '%', '腾讯等单一股票占比上限')}
+          ${renderRedLineCard('单一公司持仓', rl.singleStockMaxPct, 0.05, '%', '单一股票/分组占比上限')}
           ${renderRedLineCard('RMB 占比红线', rl.rmbMaxPct, 0.70, '%', '人民币资产占比上限')}
           ${renderRedLineCard('RMB 目标占比', rl.rmbTargetPct, 0.60, '%', '人民币资产目标比例')}
           ${renderRedLineCard('象限偏离阈值', rl.moduleDeviationDefault, 0.05, '%', '标普象限允许偏离范围')}

@@ -447,9 +447,6 @@
   .wf-amount{font-family:"JetBrains Mono",monospace;text-align:right;color:var(--text-2);padding-top:1px;font-size:10px}
   .wf-amount .income-line{color:var(--ok)}
 
-  /* ============= TENCENT LADDER ============= */
-  #tencent-ladder .lia-card{padding:10px 14px}
-
   /* ============= FOOTER ============= */
   footer{margin-top:24px;color:var(--text-3);font-size:10px;text-align:center;line-height:1.6;font-family:"JetBrains Mono",monospace}
   footer code{background:var(--bg-2);padding:1px 4px;border-radius:3px;color:var(--text-2)}
@@ -520,8 +517,8 @@
   <div class="tabs-wrap">
     <nav class="tabs" role="tablist">
       <button class="tab-btn active" data-tab="assets">📊 总览</button>
-      <button class="tab-btn" data-tab="plan">🎯 规划与复盘</button>
       <button class="tab-btn" data-tab="money">💸 现金与负债</button>
+      <button class="tab-btn" data-tab="plan">🎯 规划与复盘</button>
       <button class="tab-btn" data-tab="risk">🛡️ 风险与宏观</button>
       <button class="tab-btn" data-tab="tax">🧮 税务计算</button>
     </nav>
@@ -615,11 +612,6 @@
     </section>
 
     <section>
-      <h2>腾讯减仓阶梯</h2>
-      <div id="tencent-ladder"></div>
-    </section>
-
-    <section>
       <h2>🏁 里程碑 · 路径动作清单<span class="hint">核心战略执行点</span></h2>
       <div class="lia-card" id="milestones"></div>
       <div id="target-milestones-container"></div>
@@ -648,8 +640,8 @@
 
   <!-- =========== Tab 3: 现金与负债（负债刚性 + 现金流）=========== -->
   <div class="tab-pane" id="tab-money">
-    <section data-subgroup="负债">
-      <h2>负债概览</h2>
+    <section data-subgroup="现金与负债">
+      <h2>总览</h2>
       <div class="kpis" id="liab-kpis"></div>
     </section>
 
@@ -746,7 +738,7 @@
       <div id="risk-content"></div>
     </section>
     <section>
-      <h2>对冲概览 <span class="hint">腾讯集中仓 vs 美股+黄金 对冲效果</span></h2>
+      <h2>对冲概览 <span class="hint">港股集中仓 vs 美股+黄金 对冲效果</span></h2>
       <div id="hedge-overview"></div>
       <div id="hedge-net-card"></div>
     </section>
@@ -821,7 +813,7 @@
     </ul>
     <h3>推荐阅读顺序</h3>
     <ul>
-      <li>顶部 KPI：先看红线（腾讯单一敞口、RMB占比）和告警数量。</li>
+      <li>顶部 KPI：先看红线（单一公司敞口、RMB占比）和告警数量。</li>
       <li>模块画像：看哪些模块超/偏低；再看具体子项的 Δ(pp)。</li>
       <li>池分离：RMB 池与海外池物理隔离，不能互相“补位”。</li>
     </ul>
