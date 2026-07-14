@@ -333,6 +333,8 @@ window.AssetCore = (function () {
       cur.modules.forEach(function (m) {
         m.subs.forEach(function (s) {
           if (s.key === "_orphan" || s.status === "planned") return;
+          // ponytail: 单一公司口径只管股票/基金类，不动产（收租房产）不应套用 5% 单股红线
+          if (s.venue === "不动产") return;
           if (s.rmb > max) { max = s.rmb; aggRMB = s.rmb; aggName = s.name; }
         });
       });

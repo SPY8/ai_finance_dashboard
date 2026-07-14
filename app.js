@@ -101,6 +101,8 @@ python3 -m http.server 8765</pre>
       let max = 0;
       cur.modules.flatMap(m=>m.subs).forEach(s => {
         if (s.key === "_orphan" || s.status === "planned") return;
+        // ponytail: 单一公司口径只管股票/基金类，不动产（收租房产）不应套用 5% 单股红线
+        if (s.venue === "不动产") return;
         if (s.rmb > max) { max = s.rmb; singleRMB = s.rmb; singleName = s.name; }
       });
     }
@@ -606,6 +608,8 @@ python3 -m http.server 8765</pre>
       let max = 0;
       s.modules.flatMap(m=>m.subs).forEach(x => {
         if (x.key === "_orphan" || x.status === "planned") return;
+        // ponytail: 单一公司口径只管股票/基金类，不动产不应套用单股红线
+        if (x.venue === "不动产") return;
         if (x.rmb > max) max = x.rmb;
       });
       return max / s.total;
