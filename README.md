@@ -67,6 +67,99 @@ python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
 
 > 缺失的 holdings key 按 0 计算。一次只填变化的资产即可，但建议每次都填全（防止遗忘）。
 
+### 4. liabilities.json 负债清单
+
+本金 + 利率 + 到期日。`type:"hard"`（硬性，扣减净资产）或 `"soft"`（软性，如向亲属借款无固定还款日，不计入净资产扣减）。**注意：当前看板按初始本金恒定展示，不按 `endDate` 做逐月摊销递减，利息按 `本金 × 利率` 静态估算。**
+
+```jsonc
+{
+  "liabilities": [
+    {
+      "name": "房贷（自住房）",     // 表格项目列
+      "type": "hard",              // hard=扣减净资产 / soft=软性不扣减
+      "ccy": "RMB",                // 币种，按 rates 折 RMB 计入总负债
+      "principal": 2000000,        // 本金（折 RMB 后进总负债合计）
+      "interestRate": 0.042,       // 年化利率，表格利率列 pct() 展示
+      "monthlyInterest": 7000,     // 月利息列（=本金×利率÷12，手填）
+      "annualInterest": 84000,     // 年利息列 + KPI「年利息」合计
+      "deductFromNet": true,       // true=从净资产扣减（与 type:"hard" 一致）
+      "startDate": "2021-06",      // 生效起（accrual=monthly_inflow 类用动态累计，普通房贷不用）
+      "endDate": "2046-06",        // 到期日（仅展示，不做摊销）
+      "note": "占位示例，请替换为真实数据"
+    }
+  ]
+}
+```
+
+字段对应 `liabilities.js` 的渲染列：本金 / 利率 / 月利息 / 年利息 / 性质（硬性·软性）/ 备注。
+
+### 5. target.json 中的不动产 sub（收租房产）
+
+不动产在「保本升值（长期稳健）」象限下，**维护口径与金融资产不同**——它不套单一公司 5% 红线，且在「金融盘」口径里被剔除。关键字段：
+
+```jsonc
+{
+  "key": "property_core",        // 唯一标识，holdings 里按此 key 报数；key 各家不同（property_core / lishuiqiao_property 都行）
+  "name": "核心城市房产（收租型）",
+  "ccy": "RMB",                  // 房产原币，按 rates 折 RMB
+  "venue": "不动产",             // ⚠️ 必须是"不动产"。core.js 靠这个标记判定房产，不是靠 key
+  "subTargetPct": 0.3064,        // 子项目标占比（四象限内部再分配）
+  "subThresholdPct": 0.05,       // 子项偏离阈值（仅提醒）
+  "phase": "active",             // active=持有 / planned=计划 / closed=已退出 / exit=待变现
+  "expectedReturn": {            // 预期年化，三档情景
+    "conservative": 0.012,
+    "neutral": 0.02,
+    "optimistic": 0.03,
+    "yieldOnly": true,           // true=只算租金 yield，不算房价升值（房产默认）
+    "source": "一线城市租金 yield 2-3%，扣空置/维护取 1.2-3%"
+  },
+  "note": ""
+}
+```
+
+维护要点（`venue:"不动产"` 是核心标记，改一处口径三处生效）：
+
+| 口径 | 行为 | 出处 |
+|---|---|---|
+| 单一公司红线 | **不动产不套 5% 红线**（收租房产不是单股） | `core.js` healthCheck 跳过 `venue==="不动产"` |
+| 金融盘 vs 整体盘 | 不动产计入**整体盘**总盘，但**剔除出金融盘** | `core.js` enrichSnapshot `financialTotal` 跳过不动产 |
+| 加权预期年化 | `excludeRealEstate` 选项下剔除；含房产时按 `yieldOnly` 只取租金 | `core.js` weightedExpectedReturn |
+| 报数 | 房产估值随市场变，每次 snapshot 在 `holdings[property_core].raw` 填最新估值 | history.json append-only |
+
+> 报房产估值时和报股票一样 append snapshot，但估值口径要稳定（同一种估值方法，别一会按购入价一会按挂牌价）。`venue` 写错成"房产"或"A 股"会导致它被误判进金融盘并套上单一公司红线。
+
+### 6. target.json 中的通用 sub 字段（股票 / 基金 / 房产通用）
+
+上面第 5 节是不动产的特殊口径。所有 sub（含股票/基金）共用下面这套字段，以一个待清仓的腾讯持仓为例：
+
+```jsonc
+{
+  "key": "tencent_futu",        // 唯一标识。history.json 的 holdings 按此报数（holdings.tencent_futu.raw）。
+                                 //   tencent_ 前缀的 sub 会被合并算"单一公司敞口"红线
+  "name": "腾讯（富途·HK）",      // 展示名（表格/卡片显示的中文名）
+  "ccy": "HKD",                  // 原币种。sub.rmb = raw × rates[ccy]；三币种物理隔离，海外池/人民币池不互补
+  "venue": "富途牛牛",            // 持仓账户/通道，仅展示用。⚠️ 不动产必须精确写 "不动产"（见第 5 节）
+  "subTargetPct": 0.0,           // 子项目标占比（占总盘）。0.0 = 清仓目标，不打算持有
+  "subThresholdPct": 0.02,       // 子项偏离阈值（±2%），仅提醒不强制；象限 module.thresholdPct 才强制
+  "phase": "exit",               // 生命周期：active=持有 / planned=计划建仓 / closed=已退出 / exit=待变现 / pending=待定
+                                 //   exit 会被算进"待变现资产"健康检查告警
+  "expectedReturn": {            // 预期年化收益，三档情景，按各 sub 的 RMB 加权算"加权预期年化"
+    "conservative": 0.03,        // 保守
+    "neutral": 0.06,             // 中性
+    "optimistic": 0.1            // 乐观
+    // "yieldOnly": true,        // （房产专用）true=只算租金 yield 不算房价升值
+    // "source": "..."           // （可选）收益假设来源说明
+  },
+  "note": "**清仓目标**：成本价高、税少，卖出 → 转 VOO"  // 备注，支持 markdown，展示在子项明细
+}
+```
+
+**两层目标别混淆**：象限 `module.targetPct`（如四象限 40%）是大类目标，`sub.subTargetPct` 是子项在总盘里的再分配——两者独立，子项之和不必等于象限目标（看板会分别算偏离）。
+
+**`phase` 取值是固定枚举，别写错**：`active` / `planned` / `closed` / `exit` / `pending`。写错会导致待变现告警漏报或误报。
+
+**这个 sub 的整体语义**：腾讯在富途账户的持仓，目标占比 0%（要清仓），当前处于待变现阶段，预期年化中性 6%，备注写了清仓理由和资金去向（转 VOO）。
+
 ## 怎么报新数值
 
 直接对小龙猫说：

@@ -1,4 +1,18 @@
 {
   "note": "DEMO 负债清单。本金 + 利率 + 到期日。'soft' 类负债（向亲属借款无固定还款日）单独标识，不计入净资产扣除。\n\nDEMO 默认空。如果你有房贷 / 车贷 / 信用卡分期 / 借款，按下面的格式加进去。",
-  "liabilities": []
+  "liabilities": [
+    {
+      "name": "房贷（自住房）",
+      "type": "hard",
+      "ccy": "RMB",
+      "principal": 2000000,
+      "interestRate": 0.042,
+      "monthlyInterest": 7000,
+      "annualInterest": 84000,
+      "deductFromNet": true,
+      "startDate": "2021-06",
+      "endDate": "2046-06",
+      "note": "占位示例：本金 200 万 / 年化 4.2% / 25 年期；月利息=本金×利率÷12，年利息=本金×利率。请替换为真实数据。"
+    }
+  ]
 }
