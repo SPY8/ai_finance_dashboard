@@ -165,6 +165,9 @@ window.AssetCore = (function () {
     const ccyTotals = { RMB:0, USD:0, HKD:0 };
     const KEY_ALIASES = { etf_563020: ["etf_512890"] };
     const targetKeys = new Set(target.modules.flatMap(m => m.subs.map(s => s.key)));
+    // ponytail: 不动产已从四象限剥离到顶层 realEstate segment，其 key 必须纳入 targetKeys，
+    // 否则会被当 orphan 二次计入总盘。与 modules.subs 同口径防重。
+    (target.realEstate || []).forEach(function (re) { if (re && re.key) targetKeys.add(re.key); });
     Object.values(KEY_ALIASES).forEach(function (arr) {
       (arr || []).forEach(function (k) { targetKeys.add(k); });
     });
@@ -251,30 +254,28 @@ window.AssetCore = (function () {
       });
     }
 
-    // 模块/子项状态判定
-    modules.forEach(function (m) {
-      m.actualPct = total > 0 ? m.total / total : 0;
-      m.delta     = m.actualPct - m.targetPct;
-      if (m.key === "_orphan") {
-        // 游离持仓目标=0%，有任何持仓都算超标
-        m.status = m.total > 0 ? "over" : "ok";
-      } else {
-        m.status = Math.abs(m.delta) > m.thresholdPct ? (m.delta > 0 ? "over" : "under") : "ok";
-      }
-      m.subs.forEach(function (s) {
-        s.actualPct = total > 0 ? s.rmb / total : 0;
-        s.delta     = s.actualPct - (s.subTargetPct || 0);
-        if (s.phase === "blocked")      s.status = "blocked";
-        else if (s.phase === "exit")    s.status = s.rmb > 0 ? "exit" : "ok";
-        else if (s.phase === "planned") s.status = s.rmb === 0 ? "planned" : (s.delta > (s.subThresholdPct||0) ? "over" : "ok");
-        else s.status = (s.subThresholdPct && Math.abs(s.delta) > s.subThresholdPct)
-                        ? (s.delta > 0 ? "over" : "under") : "ok";
-      });
+    // 不动产 segment（顶层 realEstate，类似 souvenirs）：计入总盘/币种分布，但不进四象限 modules。
+    // ponytail: 总盘口径零变化——房产市值照旧计入 total/ccyTotals，只是不再是任何象限的 sub。
+    const realEstateItems = (target.realEstate || []).map(function (re) {
+      const holdings = snap.holdings || {};
+      const pricesObj = prices || {};
+      const hk = resolveKey(re.key, holdings);
+      const pk = resolveKey(re.key, pricesObj);
+      const h = holdings[hk];
+      const v = valueOf(h, Object.assign({}, re, { key: pk }));
+      if (!v) return Object.assign({}, re, { raw:0, rmb:0, cost:0, costRMB:0, marketValue:0, missing:true });
+      return Object.assign({}, re, v);
     });
+    realEstateItems.forEach(function (s) {
+      if (!s.rmb) return;
+      total += s.rmb;
+      totalCost += s.costRMB != null ? s.costRMB : s.rmb;
+      ccyTotals[s.ccy] = (ccyTotals[s.ccy] || 0) + s.rmb;
+    });
+    const realEstateTotal = realEstateItems.reduce(function(a,s){return a + (s.rmb||0);}, 0);
 
-    // 金融盘 vs 整体盘（剔除房产 + 待变现）
-    // ponytail: 用 venue 判定房产而非硬编码 key 列表——key 各家不同（property_core / lishuiqiao_property），
-    // venue:"不动产" 是 target 里所有房产的稳定标记，改一处口径三处受益（见下方 weightedExpectedReturn）
+    // 金融盘 = 四象限模块非不动产子项之和（不动产已不在 modules，等于 modules 全 sub 之和 - orphan）
+    // ponytail: 保留 venue 判定兜底（万一 target 仍把不动产写在 modules 里），主路径是 realEstate 已剥离
     const isRealEstate = function (s) { return s.venue === "不动产"; };
     let financialTotal = 0;
     modules.forEach(function (m) {
@@ -285,7 +286,35 @@ window.AssetCore = (function () {
       });
     });
 
-    return Object.assign({}, snap, { total:total, totalCost:totalCost, ccyTotals:ccyTotals, modules:modules, financialTotal:financialTotal });
+    // 模块/子项状态判定：四象限用金融盘作分母（不动产剥离后按金融资产 100% 配平判偏离）；
+    // _orphan 仍用全盘 total（"占整体盘"概念）。financialTotal 为 0 时回退 total 防除零。
+    const quadrantDenom = financialTotal > 0 ? financialTotal : total;
+    modules.forEach(function (m) {
+      const denom = m.key === "_orphan" ? total : quadrantDenom;
+      m.actualPct = denom > 0 ? m.total / denom : 0;
+      m.delta     = m.actualPct - m.targetPct;
+      if (m.key === "_orphan") {
+        // 游离持仓目标=0%，有任何持仓都算超标
+        m.status = m.total > 0 ? "over" : "ok";
+      } else {
+        m.status = Math.abs(m.delta) > m.thresholdPct ? (m.delta > 0 ? "over" : "under") : "ok";
+      }
+      m.subs.forEach(function (s) {
+        s.actualPct = denom > 0 ? s.rmb / denom : 0;
+        s.delta     = s.actualPct - (s.subTargetPct || 0);
+        if (s.phase === "blocked")      s.status = "blocked";
+        else if (s.phase === "exit")    s.status = s.rmb > 0 ? "exit" : "ok";
+        else if (s.phase === "planned") s.status = s.rmb === 0 ? "planned" : (s.delta > (s.subThresholdPct||0) ? "over" : "ok");
+        else s.status = (s.subThresholdPct && Math.abs(s.delta) > s.subThresholdPct)
+                        ? (s.delta > 0 ? "over" : "under") : "ok";
+      });
+    });
+
+    return Object.assign({}, snap, {
+      total: total, totalCost: totalCost, ccyTotals: ccyTotals,
+      modules: modules, financialTotal: financialTotal,
+      realEstate: realEstateItems, realEstateTotal: realEstateTotal,
+    });
   }
 
   // ========== 加权预期年化 ==========
@@ -305,6 +334,17 @@ window.AssetCore = (function () {
         }
       });
     });
+    // 整体盘口径（excludeRealEstate!==true）需把已剥离到 cur.realEstate 的房产纳入加权，
+    // 否则"整体盘预期年化"会丢掉房产，与 app.js 的"含房产"语义冲突。金融盘口径维持剔除。
+    if (!opts.excludeRealEstate) {
+      (cur.realEstate || []).forEach(function (s) {
+        const er = s.expectedReturn && s.expectedReturn[scenario];
+        if (er != null && s.rmb > 0) {
+          weighted += er * s.rmb;
+          totalW += s.rmb;
+        }
+      });
+    }
     return totalW > 0 ? weighted / totalW : 0;
   }
 
@@ -496,8 +536,14 @@ window.AssetCore = (function () {
     if (Math.abs(targetSum - 1) > 0.01) {
       errors.push("target.json 模块权重和 = " + (targetSum*100).toFixed(1) + "%（应为 100%）");
     }
+    // ponytail: 不动产已剥离到顶层 realEstate，四象限只统计金融资产。capital_preserve 的金融子项
+    // subTargetPct 之和不再等于含房产的大类 targetPct（房产那部分被移走了），属预期，放行该大类校验。
     cur.modules.forEach(function (m) {
       if (m.key === "_orphan") return;
+      const hasRealEstate = m.subs.some(function(s){ return s.venue === "不动产"; });
+      // 该大类已剥离不动产（target 配了 realEstate 且此 module 内已无不动产 sub）：
+      // 金融子项和 ≠ 含房产大类目标属预期，跳过严格校验，仅留宽松提示。
+      if (!hasRealEstate && (target.realEstate || []).length > 0) return;
       const subSum = m.subs.reduce(function(a,s){ return a + (s.subTargetPct||0); }, 0);
       if (Math.abs(subSum - m.targetPct) > 0.005) {
         errors.push(m.name + " 子项权重和 " + (subSum*100).toFixed(1) + "% ≠ 大类目标 " + (m.targetPct*100).toFixed(1) + "%");

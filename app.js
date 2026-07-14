@@ -49,6 +49,7 @@
       renderKPIs(cur, prev, target);
       renderCoastCard(cur, target);
       renderModules(cur);
+      renderRealEstate(cur);
       renderAlerts(cur);
       renderCurrency(cur, target);
       renderTrends(enriched, dateKey, target);
@@ -507,6 +508,51 @@ python3 -m http.server 8765</pre>
         </div>
       `;
     }).join("");
+  }
+
+  // 不动产 segment（顶层 realEstate，已剥离出四象限）：计入总盘但不参与象限偏离，单独展示。
+  function renderRealEstate(cur) {
+    const root = $("#realestate");
+    if (!root) return;
+    const items = cur.realEstate || [];
+    if (!items.length) { root.innerHTML = ""; return; }
+    const total = cur.total || 0;
+    const reTotal = cur.realEstateTotal || items.reduce((a,s)=>a+(s.rmb||0),0);
+    const rows = items.map(s => {
+      const pctOfTotal = total > 0 ? s.rmb / total : 0;
+      const phaseBadge = phaseBadgeHTML(s.phase);
+      const venue = s.venue ? `<span style="color:var(--text-2);font-size:11px">· ${h(s.venue)}</span>` : "";
+      const rawTitle = s.shares != null
+        ? `原币口径：${fmt(s.shares)} 股 × ${moneyText(s.price)} ${s.ccy}`
+        : `原币口径：${fmt(s.raw)} ${s.ccy}`;
+      return `
+        <div class="sub-row">
+          <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${h(s.name)}</span>${phaseBadge}${venue}</div>
+          <div class="sub-raw num" title="${a(rawTitle)}">
+            ${s.shares != null ? `${fmt(s.shares)} × ${moneyText(s.price)}` : `${fmt(s.raw)} ${s.ccy}`}
+          </div>
+          <div class="sub-rmb num" title="市值（折RMB）=${fmt(s.rmb)}">${fmt(s.rmb)}</div>
+          <div class="sub-state ok" title="占整体盘比例=市值/总盘（不动产计入总盘但不参与四象限偏离）">
+            <span style="font-size:10px;color:var(--text-2)">占盘</span> ${pct(pctOfTotal,1)}
+          </div>
+        </div>
+      `;
+    }).join("");
+    root.innerHTML = `
+      <div class="mod" style="margin-top:12px">
+        <div class="mod-head">
+          <div>
+            <div class="mod-name"><span class="roman serif">房</span>不动产（收租房产）</div>
+            <div style="color:var(--text-2);font-size:11px;margin-top:4px" title="不动产合计=所有 realEstate 项折RMB之和；计入总盘但不参与四象限偏离">小计 <span class="num">${fmt(reTotal)}</span> RMB · 占盘 ${pct(total>0?reTotal/total:0,1)}</div>
+          </div>
+          <div class="mod-meta">
+            <div class="pct num" title="不动产占总盘比例">${pct(total>0?reTotal/total:0,1)}</div>
+            <div class="target" style="color:var(--text-2)">已剥离四象限 · 仅计入总盘</div>
+          </div>
+        </div>
+        <div class="subs">${rows}</div>
+      </div>
+    `;
   }
 
   function renderAlerts(cur) {

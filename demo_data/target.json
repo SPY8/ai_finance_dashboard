@@ -686,23 +686,6 @@
       "rationale": "[DEMO] 标普四象限·保本升值 40%。核心房产收租 + 红利低波双拼。",
       "subs": [
         {
-          "key": "property_core",
-          "name": "核心城市房产（收租型）",
-          "ccy": "RMB",
-          "venue": "不动产",
-          "subTargetPct": 0.3064,
-          "subThresholdPct": 0.05,
-          "phase": "active",
-          "expectedReturn": {
-            "conservative": 0.012,
-            "neutral": 0.02,
-            "optimistic": 0.03,
-            "yieldOnly": true,
-            "source": "一线城市租金 yield 2-3%，扣空置/维护取 1.2-3%；不算房价升值"
-          },
-          "note": "[DEMO]"
-        },
-        {
           "key": "etf_515450",
           "name": "大盘红利低波 515450",
           "ccy": "RMB",
@@ -767,6 +750,32 @@
       "changes": [
         "模块画像重映射为标准普尔家庭资产四象限：日常现金10% / 保命的钱20% / 生钱的钱30% / 保本升值40%；module key 改为 daily_cash/safety_insurance/growth_equity/capital_preserve，子项 subTargetPct 同比例配平"
       ]
+    },
+    {
+      "date": "2026-07-14",
+      "version": "V3.2-realestate-out",
+      "changes": [
+        "不动产（property_core）从 capital_preserve 象限剥离到顶层 realEstate segment（类似 souvenirs），四象限仅统计金融资产；总盘口径不变（不动产仍计入 cur.total/cur.ccyTotals），仅四象限偏离改用金融盘口径"
+      ]
+    }
+  ],
+  "realEstate": [
+    {
+      "key": "property_core",
+      "name": "核心城市房产（收租型）",
+      "ccy": "RMB",
+      "venue": "不动产",
+      "subTargetPct": 0.3064,
+      "subThresholdPct": 0.05,
+      "phase": "active",
+      "expectedReturn": {
+        "conservative": 0.012,
+        "neutral": 0.02,
+        "optimistic": 0.03,
+        "yieldOnly": true,
+        "source": "一线城市租金 yield 2-3%，扣空置/维护取 1.2-3%；不算房价升值"
+      },
+      "note": "[DEMO]"
     }
   ],
   "souvenirs": [

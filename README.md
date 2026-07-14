@@ -85,9 +85,26 @@ python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
 | 一·日常现金（要花的钱） | 10% | ±3% | 微众活期 / 国债阶梯 / 短债 ETF / 美元货基 / 美国国债 |
 | 二·保命的钱（保障保险） | 20% | ±3% | 保单现金价值 / IAU 黄金 / 实物金条 / 华安黄金 ETF |
 | 三·生钱的钱（投资收益） | 30% | ±5% | CSPX/标普 / QQQM/纳指 / VOO / BRK.B / 腾讯×3 |
-| 四·保本升值（长期稳健） | 40% | ±5% | 核心城市房产（收租）/ 红利低波 515450 / 红利低波 563020 |
+| 四·保本升值（长期稳健） | 40% | ±5% | 红利低波 515450 / 红利低波 563020 |
 
 > **注意：** 面板展示的"当前目标占比"可以根据家庭不同阶段灵活调整，例如资产变现或追加投资后，只需在 `target.json` 中调整 `targetPct` 即可。标准普尔四象限（10/20/30/40）为参考基准，实际配置可按家庭阶段偏离。
+
+### 不动产单列（realEstate segment）
+
+不动产（`venue:"不动产"`）**已从四象限剥离**，放在 `target.json` 顶层 `realEstate` 数组（形态类似 `souvenirs`），与四象限并列：
+
+- **计入总盘**：不动产市值照旧计入 `cur.total` / `cur.ccyTotals`，所有 KPI（总资产、单一公司敞口、RMB 占比、复利预测、Coast FIRE）的总盘口径**不变**。
+- **不参与四象限偏离**：四象限的 `actualPct / delta / status` 及健康检查的"象限偏离"告警改用**金融盘口径**（分母为 `financialTotal`，已剔除不动产），让四象限回归纯金融资产的配置指导。
+- 单独渲染为"不动产"卡片（四象限模块列表下方），展示市值与占整体盘比例（分母仍是全盘 `total`）。
+
+```jsonc
+"realEstate": [
+  { "key":"property_core", "name":"核心城市房产（收租型）", "ccy":"RMB", "venue":"不动产",
+    "subTargetPct":0.3064, "phase":"active", "expectedReturn":{...,"yieldOnly":true} }
+]
+```
+
+> 不动产的 `key` 仍要和 `history.json` 的 `holdings` 报数 key 对齐。`venue:"不动产"` 标记保留——`core.js` 靠它判定房产口径（金融盘剔除、单一公司红线跳过），剥离后这套判定依然生效。
 
 ## 双层阈值
 
