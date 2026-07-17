@@ -1,9 +1,8 @@
 {
-  "note": "DEMO 一次性收入事件。和 recurring.json 的循环收入互补：\n- recurring.json: 工资 / 房租（按月或按年发生）\n- income_events.json: 股票兑现 / 项目分红 / 单点奖金 等单点事件\n\nDEMO 留空，朋友拿到后按需填。schema 字段示意见下方注释（可删）。",
-
+  "note": "DEMO 一次性收入事件。和 recurring.json 的循环收入互补：\n- recurring.json: 工资 / 房租（按月或按年发生）\n- income_events.json: 股票兑现 / 项目分红 / 单点奖金 等单点事件\n\nDEMO 已填 2026 年三笔假数据用于演示效果（朋友拿到后按需改/删）。",
   "_schema_example": {
     "key":   "your_event_key",
-    "year":  2026,
+    "year": 2026,
     "month": 9,
     "amount": 80000,
     "ccy":   "RMB",
@@ -13,6 +12,41 @@
     "assumptions": "可选：估算口径说明",
     "note":  "可选：备注"
   },
-
-  "events": []
+  "events": [
+    {
+      "key": "rsu_vest_2026h1",
+      "year": 2026,
+      "month": 3,
+      "amount": 120000,
+      "ccy": "RMB",
+      "kind": "stock_vest",
+      "name": "RSU 首批归属",
+      "confidence": 0.9,
+      "assumptions": "按归属日股价折算，未扣税",
+      "note": "demo 假数据"
+    },
+    {
+      "key": "project_bonus_2026",
+      "year": 2026,
+      "month": 9,
+      "amount": 80000,
+      "ccy": "RMB",
+      "kind": "bonus",
+      "name": "项目分红",
+      "confidence": 0.7,
+      "assumptions": "按项目里程碑估算",
+      "note": "demo 假数据"
+    },
+    {
+      "key": "side_gig_2026",
+      "year": 2026,
+      "month": 11,
+      "amount": 15000,
+      "ccy": "RMB",
+      "kind": "side_gig",
+      "name": "技术咨询费",
+      "confidence": 0.5,
+      "note": "demo 假数据"
+    }
+  ]
 }
