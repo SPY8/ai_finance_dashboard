@@ -9,11 +9,7 @@
   if (typeof window.AFD_CONFIG === 'undefined') window.AFD_CONFIG = { dataDir: 'demo_data' };
   try {
     const storedDataDir = window.localStorage && window.localStorage.getItem("afd_data_dir");
-    // 仅在用户已通过 config.js 显式配置私有数据时，才尊重 localStorage 的数据源选择；
-    // 裸跑（无 config.js）环境下 localStorage 可能残留旧值，强制回退 demo_data 避免全盘 404。
-    if (storedDataDir && window.AFD_CONFIG.dataDir !== 'demo_data') {
-      window.AFD_CONFIG.dataDir = storedDataDir;
-    }
+    if (storedDataDir) window.AFD_CONFIG.dataDir = storedDataDir;
   } catch (err) {}
 </script>
 <script>
