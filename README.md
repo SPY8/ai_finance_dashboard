@@ -93,7 +93,82 @@ python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
 
 字段对应 `liabilities.js` 的渲染列：本金 / 利率 / 月利息 / 年利息 / 性质（硬性·软性）/ 备注。
 
-### 5. target.json 中的不动产 sub（收租房产）
+### 5. recurring.json 循环收支（工资 / 房租 / 保险 / 利息）
+
+记录**规律性、可预测**的收入与支出（区别于 `transactions/yearly/*.json` 的逐笔实绩账单）。被三个 Tab 消费：负债与刚性 Tab（月度净流、年化保费、保单现金价值 KPI）、现金流 Tab（年度预算 vs 实际、刚性 vs 弹性占比）、资产配置 Tab（保单现金价值注入总盘）。
+
+顶层两个数组：`incomes`（收入）、`expenses`（支出）。每项共用字段：
+
+```jsonc
+{
+  "key": "salary_self",        // 唯一标识。现金流 Tab 里 transactions 的 recurring=<key> 字段按此挂钩实绩账单
+  "name": "工资 · Self",        // 展示名
+  "ccy": "RMB",                 // 原币种，按 rates 折 RMB
+  "amount": 22000,              // 原币种金额。frequency=monthly→月额；annual→年额
+  "frequency": "monthly",       // monthly | annual。月额在年化时 ×activeMonthsInYear，年额直接取
+  "kind": "salary",             // 语义类型（见下表），驱动不同折算/通胀系数
+  "startDate": null,            // 生效起（YYYY-MM 或 YYYY-MM-DD）；null 表示一直有效
+  "endDate": null,              // 截止（同上）。activeMonthsInYear 用它判断当年是否仍在缴/收
+  "note": "税后到手月薪 ~2.2w"
+}
+```
+
+`kind` 取值与行为（`liabilities.js` 瀑布图、`cashflow.js` 年化）：
+
+| kind | 含义 | 通胀系数（瀑布图逐年放大） |
+|---|---|---|
+| `salary` | 工资 | ×(1+通胀×0.7) |
+| `rental_income` | 房租 | ×(1+通胀×0.5) |
+| `insurance` | 保险保费（支出） | ×(1+通胀)；且合并入「保险池」 |
+| `transport` / 其它 | 车险等其它刚性支出 | ×(1+通胀) |
+
+**保险项的专属字段**（`kind:"insurance"` 的 expense，保单信息 + 现金价值时间序列）：
+
+```jsonc
+{
+  "key": "ins_ci_kid_tiger",
+  "name": "少儿重疾 · Kid2 50w",
+  "ccy": "RMB",                 // 保费与 cashValueSchedule 金额都用此币种
+  "amount": 800,
+  "frequency": "annual",
+  "kind": "insurance",
+  "policyHolder": "Spouse",     // 投保人
+  "insuredBy": "Kid2",          // 被保人
+  "policyNo": "DEMO-INS-006",   // 保单号（⚠️ 真实 data/ 里是隐私，绝不提交、绝不在对话复述）
+  "beneficiary": "Spouse",      // 受益人
+  "coverage": 500000,           // 保额（原币种）
+  "endDate": "2055-12-31",      // 保单满期
+  "cashValueSchedule": {        // 现金价值（退保价值）年度时间序列，{年份:金额}，原币种
+    "2026": 3200, "2028": 7800, "2030": 12800, "2035": 26500,
+    "2040": 41000, "2045": 52000, "2050": 58000, "2055": 60000
+  },
+  "note": "现金价值随保单年度增长"
+}
+```
+
+`cashValueSchedule` 维护要点（`core.js` `resolveCashValueForYear` + `injectInsuranceCashValue`）：
+
+- key 是**年份字符串**（如 `"2026"`），value 是**保单原币种金额**（不是 RMB，按 `ccy` + 当年 `rates` 折算）。
+- **缺失年份线性插值**：只填关键节点年份即可，中间年份自动算。早于首年取 0，晚于末年取末年值（现金价值表通常给到某保单年度后趋稳）。
+- 取值年份由 snapshot 的 `date`（资产 Tab）/ 当前年份（负债 Tab KPI）决定——所以**报数时填的 snapshot 日期年份要和想取的现金价值年份对得上**。
+- 所有保单当年现金价值合计会被注入 `history.json` 最新 snapshot 的 `holdings.insurance_cashvalue`，由 target.json「防御现金」模块的 `insurance_cashvalue` sub 承接，**参与总盘**。已存在 `insurance_cashvalue` 不覆盖，`sumRMB>0` 才写入。
+- 兼容旧字段 `cashValueRMB`（字面 RMB，当当前值用，仅 schedule 缺失时兜底）——新数据建议直接用 `cashValueSchedule`。
+
+**现金流 Tab 的实绩优先机制**（`cashflow.js`）：
+
+- `transactions/yearly/YYYY.json` 里若某笔已对应 recurring 项，给该笔加 `"recurring": "<key>"`，现金流 Tab 用实绩跳过 recurring 侧的年化估算（**实绩优先**）。
+- 保险特殊：所有保险实绩统一挂 `"recurring": "_insurance_pool"`（不是单张保单 key），recurring 侧的**所有** `kind:"insurance"` 项合并成一个「保险池」做预算 vs 实际对账。
+- 非保险项按各自 `key` 逐项对账：`annualBudget = amount × (frequency===annual ? 1 : 12)` vs 当年实绩合计。
+
+**改 recurring.json 的 SOP**（与改 data/ 通用 SOP 一致）：
+
+1. 先备份：`python3 scripts/backup_data.py "改 recurring 说明"`（只改 demo_data 可跳过）。
+2. `data/` 与 `demo_data/` 结构必须一致，改一份通常同步另一份。
+3. 改完验 JSON：`python3 -c "import json; json.load(open('data/recurring.json'))"`。
+4. 退休年份联动：`target.json` 的 `retirement.selfRetireYear` 改了，要同步改这里 `salary_*` 的 `endDate`（反之亦然）。
+5. 保单号、保费金额属隐私，`data/` 版本绝不提交 git，也绝不在对话里复述具体数字。
+
+### 6. target.json 中的不动产 sub（收租房产）
 
 不动产在「保本升值（长期稳健）」象限下，**维护口径与金融资产不同**——它不套单一公司 5% 红线，且在「金融盘」口径里被剔除。关键字段：
 
@@ -128,9 +203,9 @@ python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
 
 > 报房产估值时和报股票一样 append snapshot，但估值口径要稳定（同一种估值方法，别一会按购入价一会按挂牌价）。`venue` 写错成"房产"或"A 股"会导致它被误判进金融盘并套上单一公司红线。
 
-### 6. target.json 中的通用 sub 字段（股票 / 基金 / 房产通用）
+### 7. target.json 中的通用 sub 字段（股票 / 基金 / 房产通用）
 
-上面第 5 节是不动产的特殊口径。所有 sub（含股票/基金）共用下面这套字段，以一个待清仓的腾讯持仓为例：
+上面第 6 节是不动产的特殊口径。所有 sub（含股票/基金）共用下面这套字段，以一个待清仓的腾讯持仓为例：
 
 ```jsonc
 {
