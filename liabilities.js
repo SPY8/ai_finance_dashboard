@@ -615,20 +615,33 @@
     if (!m) return null;
     return new Date(parseInt(m[1]), (parseInt(m[2]||1)||1)-1, parseInt(m[3]||1)||1);
   }
+  // ponytail: 对齐 categories.json 的 emoji + recurring 专属 income kind，手写映射避免再 fetch 一份 categories.json
   function kindLabel(kind) {
     const map = {
       living: "🏠 居住",
-      rental_income: "🏠 房租收入",
-      debt_interest: "💰 利息支出",
+      food: "🍜 食品酒水",
+      transport: "🚗 行车交通",
+      kids: "👶 儿童相关",
+      healthcare: "💊 医疗教育",
       insurance: "🛡 保险",
+      entertainment: "🎮 休闲娱乐",
+      travel: "✈️ 出差旅游",
+      outdoor_sport: "🏃 运动相关",
+      shopping: "🛍 购物消费",
+      gear: "🎒 装备数码",
+      telecom: "📡 通讯",
+      tax_fee: "💼 税费手续费",
+      gift: "🎁 人情往来",
+      debt_interest: "💰 利息支出",
+      other: "📦 其他",
+      rental_income: "🏠 房租收入",
       salary: "💼 工资",
       side_gig: "🪢 零散收入",
-      family_deposit: "👵 家庭代管",
-      stock_vest: "📜 股票兑现",
-      severance: "🎁 离职大礼包",
+      dividend: "📈 股息利息",
       bonus: "🎉 奖金",
-      transport: "🚗 行车交通",
-      telecom: "📡 通讯",
+      stock_vest: "📜 股票兑现",
+      family_deposit: "👵 家庭代管",
+      severance: "🎁 离职大礼包",
     };
     return map[kind] || kind || "—";
   }
