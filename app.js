@@ -49,7 +49,6 @@
       renderKPIs(cur, prev, target);
       renderCoastCard(cur, target);
       renderModules(cur);
-      renderRealEstate(cur);
       renderAlerts(cur);
       renderCurrency(cur, target);
       renderTrends(enriched, dateKey, target);
@@ -510,50 +509,8 @@ python3 -m http.server 8765</pre>
     }).join("");
   }
 
-  // 不动产 segment（顶层 realEstate，已剥离出四象限）：计入总盘但不参与象限偏离，单独展示。
-  function renderRealEstate(cur) {
-    const root = $("#realestate");
-    if (!root) return;
-    const items = cur.realEstate || [];
-    if (!items.length) { root.innerHTML = ""; return; }
-    const total = cur.total || 0;
-    const reTotal = cur.realEstateTotal || items.reduce((a,s)=>a+(s.rmb||0),0);
-    const rows = items.map(s => {
-      const pctOfTotal = total > 0 ? s.rmb / total : 0;
-      const phaseBadge = phaseBadgeHTML(s.phase);
-      const venue = s.venue ? `<span style="color:var(--text-2);font-size:11px">· ${h(s.venue)}</span>` : "";
-      const rawTitle = s.shares != null
-        ? `原币口径：${fmt(s.shares)} 股 × ${moneyText(s.price)} ${s.ccy}`
-        : `原币口径：${fmt(s.raw)} ${s.ccy}`;
-      return `
-        <div class="sub-row">
-          <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${h(s.name)}</span>${phaseBadge}${venue}</div>
-          <div class="sub-raw num" title="${a(rawTitle)}">
-            ${s.shares != null ? `${fmt(s.shares)} × ${moneyText(s.price)}` : `${fmt(s.raw)} ${s.ccy}`}
-          </div>
-          <div class="sub-rmb num" title="市值（折RMB）=${fmt(s.rmb)}">${fmt(s.rmb)}</div>
-          <div class="sub-state ok" title="占整体盘比例=市值/总盘（不动产计入总盘但不参与四象限偏离）">
-            <span style="font-size:10px;color:var(--text-2)">占盘</span> ${pct(pctOfTotal,1)}
-          </div>
-        </div>
-      `;
-    }).join("");
-    root.innerHTML = `
-      <div class="mod" style="margin-top:12px">
-        <div class="mod-head">
-          <div>
-            <div class="mod-name"><span class="roman serif">房</span>不动产（收租房产）</div>
-            <div style="color:var(--text-2);font-size:11px;margin-top:4px" title="不动产合计=所有 realEstate 项折RMB之和；计入总盘但不参与四象限偏离">小计 <span class="num">${fmt(reTotal)}</span> RMB · 占盘 ${pct(total>0?reTotal/total:0,1)}</div>
-          </div>
-          <div class="mod-meta">
-            <div class="pct num" title="不动产占总盘比例">${pct(total>0?reTotal/total:0,1)}</div>
-            <div class="target" style="color:var(--text-2)">已剥离四象限 · 仅计入总盘</div>
-          </div>
-        </div>
-        <div class="subs">${rows}</div>
-      </div>
-    `;
-  }
+  // 不动产 segment 已合并进池分离视图（renderPools 的"不动产池"卡片），此处保留空占位避免他处引用报错。
+  // ponytail: renderRealEstate 不再渲染——不动产卡片由 renderPools 统一产出，避免重复展示。
 
   function renderAlerts(cur) {
     const tbody = $("#alerts tbody");
@@ -919,17 +876,25 @@ python3 -m http.server 8765</pre>
     const pools = $("#pools");
     if (!pools) return;
 
-    // 按币种把所有 sub 拆到两个池
+    // 按币种把所有 sub 拆到三个池：不动产池 / RMB 资金池 / 海外资金池
+    // 不动产顶层 realEstate 已从四象限剥离，单独成池；RMB 与海外仍按币种拆分金融资产。
     const isOverseasCcy = c => c === "USD" || c === "HKD";
     const all = cur.modules.flatMap(m => m.subs.map(s => ({...s, _modKey: m.key})));
     const rmbSubs = all.filter(s => s.ccy === "RMB");
     const ovsSubs = all.filter(s => isOverseasCcy(s.ccy));
+    // realEstate 子项 core.js 未算 actualPct，这里按整体盘补算
+    const reSubs = (cur.realEstate || []).map(s => ({
+      ...s,
+      actualPct: cur.total > 0 ? (s.rmb||0) / cur.total : 0,
+    }));
 
     // 池目标占比 = 该池所有子项 subTargetPct 之和（含 phase=blocked，假设通道开通后回归）
     const rmbTarget = rmbSubs.reduce((a,s)=>a+(s.subTargetPct||0),0);
     const ovsTarget = ovsSubs.reduce((a,s)=>a+(s.subTargetPct||0),0);
+    const reTarget  = reSubs.reduce((a,s)=>a+(s.subTargetPct||0),0);
     const rmbActual = cur.total > 0 ? rmbSubs.reduce((a,s)=>a+s.rmb,0) / cur.total : 0;
     const ovsActual = cur.total > 0 ? ovsSubs.reduce((a,s)=>a+s.rmb,0) / cur.total : 0;
+    const reActual  = cur.total > 0 ? reSubs.reduce((a,s)=>a+(s.rmb||0),0) / cur.total : 0;
 
     const card = (label, color, target, actual, subs) => {
       const delta = actual - target;
@@ -976,7 +941,48 @@ python3 -m http.server 8765</pre>
     };
     // 内联中国国旗 SVG，规避 Windows 上 🇨🇳 emoji 渲染为 "CN" 文字方块的问题
     const cnFlag = `<svg width="20" height="14" viewBox="0 0 30 20" style="vertical-align:-2px;border-radius:2px;box-shadow:0 0 0 1px var(--border,rgba(0,0,0,.1))" aria-label="中国国旗"><rect width="30" height="20" fill="#de2910"/><g fill="#ffde00"><polygon points="6,2 7.18,5.3 4,3.2 8,3.2 4.82,5.3"/><circle cx="10" cy="2" r=".7"/><circle cx="12" cy="4" r=".7"/><circle cx="12" cy="7" r=".7"/><circle cx="10" cy="9" r=".7"/></g></svg>`;
+    // 不动产池阈值放宽到 0.08：房产调仓周期长、估值波动大，套用金融盘 5% 红线会长期误报
+    const reCard = (subs) => {
+      const sumRMB = subs.reduce((a,s)=>a+(s.rmb||0),0);
+      const sorted = subs.slice().sort((a,b) => (b.rmb||0) - (a.rmb||0));
+      const subsHTML = sorted.map(s => `
+        <div class="sub-row">
+          <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${h(s.name)}</span>${phaseBadgeHTML(s.phase)}</div>
+          <div class="sub-raw num">${fmt(s.raw)} ${s.ccy}</div>
+          <div class="sub-rmb num">${fmt(s.rmb||0)}</div>
+          <div class="sub-state ok">${pct(s.actualPct,1)}</div>
+        </div>
+      `).join("");
+      const delta = reActual - reTarget;
+      const cls = Math.abs(delta) > 0.08 ? (delta > 0 ? "over" : "under") : "ok";
+      const chip = cls === "over" ? `<span class="chip danger" title="偏离Δ=实际占比-目标占比（单位pp）">偏多 +${pp(delta,1)}</span>`
+                 : cls === "under" ? `<span class="chip warn" title="偏离Δ=实际占比-目标占比（单位pp）">偏少 ${pp(delta,1)}</span>`
+                 : `<span class="chip ok">在阈值内</span>`;
+      const axisMax = Math.max(reTarget, reActual) * 1.3 || 0.01;
+      const fillW = Math.min(100, (reActual/axisMax)*100);
+      const targetX = (reTarget/axisMax)*100;
+      return `
+        <div class="mod" style="border-left:3px solid var(--gold)">
+          <div class="mod-head">
+            <div>
+              <div class="mod-name">🏠 不动产池（收租房产） ${chip}</div>
+              <div style="color:var(--text-2);font-size:11px;margin-top:4px" title="不动产池=顶层 realEstate 项折RMB之和；计入总盘，不参与四象限偏离">小计 <span class="num">${fmt(sumRMB)}</span> RMB · ${subs.length} 个子项</div>
+            </div>
+            <div class="mod-meta">
+              <div class="pct ${cls} num">${pct(reActual,1)}</div>
+              <div class="target">目标 ${pct(reTarget,1)}</div>
+            </div>
+          </div>
+          <div class="bar">
+            <div class="fill ${cls}" style="width:${fillW}%"></div>
+            <div class="target-mark" style="left:${targetX}%"></div>
+          </div>
+          <div class="subs">${subsHTML}</div>
+        </div>
+      `;
+    };
     pools.innerHTML =
+      reCard(reSubs) +
       card(`${cnFlag} RMB 池（人民币）`,   "var(--rmb)", rmbTarget, rmbActual, rmbSubs) +
       card("🌏 海外池（USD + HKD）", "var(--usd)", ovsTarget, ovsActual, ovsSubs);
   }
