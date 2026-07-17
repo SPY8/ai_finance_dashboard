@@ -272,8 +272,14 @@
       const yearsLeftRound = yearsLeft != null ? Math.ceil(yearsLeft) : null;
       const annualRMB = toRMB(p.amount, p.ccy) * (p.frequency === "annual" ? 1 : 12);
       const remaining = yearsLeftRound != null ? annualRMB * yearsLeftRound : null;
+      // 总保费：若保单注明缴费期(p.payYears)则用之；否则按 startDate→endDate 估算；都没有则显示"—"
+      const start = parseDate(p.startDate);
+      const totalYears = p.payYears != null ? p.payYears
+        : (start && end) ? Math.max(0, Math.ceil((end - start) / (1000*60*60*24*365.25)))
+        : null;
+      const totalPremium = totalYears != null ? p.amount * (p.frequency === "annual" ? 1 : 12) * totalYears : null;
       const cdCls = yearsLeftRound == null ? "ok" : (yearsLeftRound <= 5 ? "warn" : "ok");
-      return { p, yearsLeft, yearsLeftRound, annualRMB, remaining, cdCls };
+      return { p, yearsLeft, yearsLeftRound, annualRMB, remaining, totalPremium, cdCls };
     }).sort((a,b) => (a.yearsLeftRound ?? 999) - (b.yearsLeftRound ?? 999));
 
     const totalRemaining = policyRows.reduce((a,r) => a + (r.remaining || 0), 0);
@@ -285,9 +291,9 @@
           <span>剩余应缴尾款合计 <b class="num" style="color:var(--text-0)">${fmtK(totalRemaining)}</b> RMB</span>
         </div>
         <table class="lia-table">
-          <thead><tr><th title="保单名称/编号（展示用）">保单</th><th title="投保人（持有保单/缴费的人）">投保人</th><th title="被保人">被保人</th><th title="受益人">受益人</th><th class="r" title="原币年保费（按保单币种）">年保费</th><th class="r" title="折算成人民币的年保费（按统一汇率）">折算 (RMB/年)</th><th title="缴费截止年或缴费期">缴至</th><th class="r" title="剩余应缴总额（按年保费×剩余年数估算）">剩余应缴尾款</th><th title="距离下一次缴费/截止的倒计时">倒计时</th></tr></thead>
+          <thead><tr><th title="保单名称/编号（展示用）">保单</th><th title="投保人（持有保单/缴费的人）">投保人</th><th title="被保人">被保人</th><th title="受益人">受益人</th><th class="r" title="原币年保费（按保单币种）">年保费</th><th class="r" title="折算成人民币的年保费（按统一汇率）">折算 (RMB/年)</th><th title="缴费截止年或缴费期">缴至</th><th class="r" title="缴费期内累计应缴总保费（原币，年保费×缴费年数）">总保费</th><th class="r" title="剩余应缴总额（按年保费×剩余年数估算）">剩余应缴尾款</th><th title="距离下一次缴费/截止的倒计时">倒计时</th></tr></thead>
           <tbody>
-            ${policyRows.map(({p, yearsLeftRound, annualRMB, remaining, cdCls}) => `
+            ${policyRows.map(({p, yearsLeftRound, annualRMB, remaining, totalPremium, cdCls}) => `
               <tr class="${cdCls === 'warn' ? 'urgent' : ''}">
                 <td><b>${p.name}</b><div style="color:var(--text-2);font-size:11px">${p.policyNo || ""} · 保额 ${fmtK(p.coverage)} ${p.ccy}</div></td>
                 <td>${p.policyHolder || "—"}</td>
@@ -296,6 +302,7 @@
                 <td class="r">${fmtK(p.amount)} ${p.ccy}</td>
                 <td class="r">${fmtK(annualRMB)}</td>
                 <td><span class="num" style="font-size:12px">${p.endDate || "—"}</span></td>
+                <td class="r">${totalPremium != null ? fmtK(totalPremium) + " " + p.ccy : "—"}</td>
                 <td class="r">${fmtK(remaining)}</td>
                 <td><span class="countdown ${cdCls}">还 ${yearsLeftRound ?? "?"} 年</span></td>
               </tr>

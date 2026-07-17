@@ -974,9 +974,10 @@ python3 -m http.server 8765</pre>
         </div>
       `;
     };
-
+    // 内联中国国旗 SVG，规避 Windows 上 🇨🇳 emoji 渲染为 "CN" 文字方块的问题
+    const cnFlag = `<svg width="20" height="14" viewBox="0 0 30 20" style="vertical-align:-2px;border-radius:2px;box-shadow:0 0 0 1px var(--border,rgba(0,0,0,.1))" aria-label="中国国旗"><rect width="30" height="20" fill="#de2910"/><g fill="#ffde00"><polygon points="6,2 7.18,5.3 4,3.2 8,3.2 4.82,5.3"/><circle cx="10" cy="2" r=".7"/><circle cx="12" cy="4" r=".7"/><circle cx="12" cy="7" r=".7"/><circle cx="10" cy="9" r=".7"/></g></svg>`;
     pools.innerHTML =
-      card("🇨🇳 RMB 池（人民币）",   "var(--rmb)", rmbTarget, rmbActual, rmbSubs) +
+      card(`${cnFlag} RMB 池（人民币）`,   "var(--rmb)", rmbTarget, rmbActual, rmbSubs) +
       card("🌏 海外池（USD + HKD）", "var(--usd)", ovsTarget, ovsActual, ovsSubs);
   }
 
