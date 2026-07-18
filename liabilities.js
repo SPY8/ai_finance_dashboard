@@ -68,7 +68,7 @@
     // ---- 总资产（取最新 snapshot 总盘，注入保单现金价值后） ----
     const latestSnap = snaps.length ? snaps[snaps.length-1] : null;
     if (latestSnap) C.injectInsuranceCashValue(latestSnap, rec);
-    const latestTotal = latestSnap ? computeSnapshotTotal(latestSnap, rates) : 0;
+    const latestTotal = latestSnap ? computeSnapshotTotal(latestSnap, rates, target) : 0;
     const netWorth = latestTotal - totalDebtRMB;
 
     // ---- 保单现金价值（当年合计 + 当年各保单值，供 KPI 和曲线图共用）----
@@ -128,10 +128,10 @@
     // ---- KPI ----
     const kpis = [
       {
-        label: "总资产 (RMB)",
+        label: "总现金 (RMB)",
         value: fmtK(latestTotal),
         sub: snaps.length ? `快照 ${snaps[snaps.length-1].date}` : "—",
-        help: "来自history.json最新快照的总盘（折RMB）",
+        help: "来自history.json最新快照的金融盘（折RMB，不含不动产）",
         tone: "ok",
       },
       {
@@ -745,8 +745,11 @@
     window.addEventListener("resize", function () { if (insuranceCVChart) insuranceCVChart.resize(); });
   }
 
-  function computeSnapshotTotal(snap, rates) {
-    return Object.values(snap.holdings || {}).reduce((a, h) => {
+  // ponytail: 排除不动产（target.realEstate 的 key），卡片只显示金融盘
+  function computeSnapshotTotal(snap, rates, target) {
+    const reKeys = new Set((target.realEstate || []).map(function (re) { return re && re.key; }).filter(Boolean));
+    return Object.entries(snap.holdings || {}).reduce((a, [k, h]) => {
+      if (reKeys.has(k)) return a;
       const ccy = h.ccy || "RMB";
       const rate = ccy === "RMB" ? 1 : (rates[ccy] || 1);
       return a + (Number(h.raw) || 0) * rate;
