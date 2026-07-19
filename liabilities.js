@@ -149,6 +149,15 @@
         tone: "ok",
       },
       {
+        label: "月度净流入",
+        value: "+" + fmtK(monthlyIncomeRMB),
+        sub: `${monthlyRows.filter(r => r.dir === "in").length} 项活跃收入`,
+        help: "基于recurring.json活跃收入项；月净流入=月收入合计（折RMB）",
+        tone: "ok",
+        delta: `年化 +${fmtK(monthlyIncomeRMB * 12)} RMB`,
+        deltaCls: "up",
+      },
+      {
         label: "月度净流出",
         value: (monthlyNet >= 0 ? "+" : "") + fmtK(monthlyNet),
         sub: `收入 ${fmtK(monthlyIncomeRMB)} − 支出 ${fmtK(monthlyExpenseRMB)}`,
