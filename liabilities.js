@@ -158,10 +158,10 @@
         deltaCls: "up",
       },
       {
-        label: "月度净流出",
+        label: "月度净留存",
         value: (monthlyNet >= 0 ? "+" : "") + fmtK(monthlyNet),
         sub: `收入 ${fmtK(monthlyIncomeRMB)} − 支出 ${fmtK(monthlyExpenseRMB)}`,
-        help: "基于recurring.json活跃项目；月净流=月收入-月支出（折RMB）",
+        help: "基于recurring.json活跃项目；月净留=月收入-月支出（折RMB）",
         tone: monthlyNet < 0 ? "warn" : "ok",
         delta: `年化 ${(monthlyNet>=0?"+":"")}${fmtK(monthlyNet*12)} RMB`,
         deltaCls: monthlyNet < 0 ? "down" : "up",
