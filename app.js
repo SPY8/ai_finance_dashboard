@@ -85,6 +85,8 @@ python3 -m http.server 8765</pre>
   function renderKPIs(cur, prev, target) {
     const total = cur.total;
     const financialTotal = cur.financialTotal || 0;
+    const realEstateTotal = cur.realEstateTotal || 0;
+    const souvenirsTotal = cur.souvenirsTotal || 0;
     const rmbPct = total > 0 ? cur.ccyTotals.RMB / total : 0;
     const redLine = target.redLines?.singleStockMaxPct ?? 0.05;
     // 单一公司敞口：按 target.redLines.singleStockGroups 聚合；未配置则取 rmb 最大的单个 sub
@@ -124,8 +126,8 @@ python3 -m http.server 8765</pre>
       {
         label: "总资产 (RMB)",
         value: fmtK(total),
-        sub: `金融盘 ${fmtK(financialTotal)} · 不动产 ${fmtK(total - financialTotal)}`,
-        help: "总盘=所有模块子项折RMB市值之和；金融盘=剔除房产+待变现；不动产=总盘-金融盘",
+        sub: `金融 ${fmtK(financialTotal)} · 房产 ${fmtK(realEstateTotal)} · 纪念品 ${fmtK(souvenirsTotal)}`,
+        help: "总盘=所有模块子项折RMB市值之和；金融盘=剔除房产+纪念品+待变现；房产=realEstateTotal；纪念品=souvenirsTotal",
         delta: deltaText, deltaCls,
         tone: "ok",
       },
