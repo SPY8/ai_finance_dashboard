@@ -168,6 +168,8 @@ window.AssetCore = (function () {
     // ponytail: 不动产已从四象限剥离到顶层 realEstate segment，其 key 必须纳入 targetKeys，
     // 否则会被当 orphan 二次计入总盘。与 modules.subs 同口径防重。
     (target.realEstate || []).forEach(function (re) { if (re && re.key) targetKeys.add(re.key); });
+    // ponytail: souvenirs（纪念股/汽车/收藏品等耗损型资产）同 realEstate，纳入 targetKeys 防止 orphan 二次计入。
+    (target.souvenirs || []).forEach(function (sv) { if (sv && sv.key) targetKeys.add(sv.key); });
     Object.values(KEY_ALIASES).forEach(function (arr) {
       (arr || []).forEach(function (k) { targetKeys.add(k); });
     });
@@ -274,6 +276,30 @@ window.AssetCore = (function () {
     });
     const realEstateTotal = realEstateItems.reduce(function(a,s){return a + (s.rmb||0);}, 0);
 
+    // 纪念品 segment（顶层 souvenirs：纪念股/汽车/收藏品等耗损型资产）：计入总盘/币种分布，
+    // 不进四象限 modules，也不设目标偏离告警（这类资产不做再平衡，仅展示市值）。
+    // ponytail: 与 realEstate 同构 enrich，但子项可直接在 target 里写死 shares/raw（纪念股 1 股这类），
+    // holdings 缺失时回落到 target 自带的 shares+prices，避免 demo 无 holdings 就显示空。
+    const souvenirItems = (target.souvenirs || []).map(function (sv) {
+      const holdings = snap.holdings || {};
+      const pricesObj = prices || {};
+      const hk = resolveKey(sv.key, holdings);
+      const pk = resolveKey(sv.key, pricesObj);
+      const h = holdings[hk];
+      // holdings 优先；缺失则用 target 自带字段（shares + prices / raw）拼一个临时 holding
+      const sub = Object.assign({}, sv, { key: pk });
+      const v = valueOf(h || (sv.shares != null ? { shares: sv.shares, cost: sv.cost } : (sv.raw != null ? { raw: sv.raw, ccy: sv.ccy } : null)), sub);
+      if (!v) return Object.assign({}, sv, { raw:0, rmb:0, cost:0, costRMB:0, marketValue:0, missing:true });
+      return Object.assign({}, sv, v);
+    });
+    souvenirItems.forEach(function (s) {
+      if (!s.rmb) return;
+      total += s.rmb;
+      totalCost += s.costRMB != null ? s.costRMB : s.rmb;
+      ccyTotals[s.ccy] = (ccyTotals[s.ccy] || 0) + s.rmb;
+    });
+    const souvenirsTotal = souvenirItems.reduce(function(a,s){return a + (s.rmb||0);}, 0);
+
     // 金融盘 = 四象限模块非不动产子项之和（不动产已不在 modules，等于 modules 全 sub 之和 - orphan）
     // ponytail: 保留 venue 判定兜底（万一 target 仍把不动产写在 modules 里），主路径是 realEstate 已剥离
     const isRealEstate = function (s) { return s.venue === "不动产"; };
@@ -314,6 +340,7 @@ window.AssetCore = (function () {
       total: total, totalCost: totalCost, ccyTotals: ccyTotals,
       modules: modules, financialTotal: financialTotal,
       realEstate: realEstateItems, realEstateTotal: realEstateTotal,
+      souvenirs: souvenirItems, souvenirsTotal: souvenirsTotal,
     });
   }
 

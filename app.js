@@ -887,6 +887,11 @@ python3 -m http.server 8765</pre>
       ...s,
       actualPct: cur.total > 0 ? (s.rmb||0) / cur.total : 0,
     }));
+    // souvenirs 同理补算 actualPct；纯展示池，不设目标、不告警
+    const svSubs = (cur.souvenirs || []).map(s => ({
+      ...s,
+      actualPct: cur.total > 0 ? (s.rmb||0) / cur.total : 0,
+    }));
 
     // 池目标占比 = 该池所有子项 subTargetPct 之和（含 phase=blocked，假设通道开通后回归）
     const rmbTarget = rmbSubs.reduce((a,s)=>a+(s.subTargetPct||0),0);
@@ -981,10 +986,41 @@ python3 -m http.server 8765</pre>
         </div>
       `;
     };
+    // 纪念品池：纯展示，不设目标占比、不告警（纪念股/汽车/收藏品等耗损型资产不做再平衡）
+    // ponytail: 复用 reCard 的子项行结构，去掉 bar/target-mark/chip，只留市值小计与占比。
+    const svCard = (subs) => {
+      const svActual = cur.total > 0 ? subs.reduce((a,s)=>a+(s.rmb||0),0) / cur.total : 0;
+      const sumRMB = subs.reduce((a,s)=>a+(s.rmb||0),0);
+      const sorted = subs.slice().sort((a,b) => (b.rmb||0) - (a.rmb||0));
+      const subsHTML = sorted.map(s => `
+        <div class="sub-row">
+          <div class="sub-name">${ccyTag(s.ccy)}<span class="nm">${h(s.name)}</span>${phaseBadgeHTML(s.phase)}</div>
+          <div class="sub-raw num">${fmt(s.raw||0)} ${s.ccy}</div>
+          <div class="sub-rmb num">${fmt(s.rmb||0)}</div>
+          <div class="sub-state ok">${pct(s.actualPct,1)}</div>
+        </div>
+      `).join("");
+      return `
+        <div class="mod" style="border-left:3px solid var(--text-2)">
+          <div class="mod-head">
+            <div>
+              <div class="mod-name">🎁 纪念品池（耗损/收藏） <span class="chip ok">仅展示</span></div>
+              <div style="color:var(--text-2);font-size:11px;margin-top:4px" title="纪念品池=顶层 souvenirs 项折RMB之和；计入总盘，不参与四象限偏离与再平衡">小计 <span class="num">${fmt(sumRMB)}</span> RMB · ${subs.length} 个子项</div>
+            </div>
+            <div class="mod-meta">
+              <div class="pct ok num">${pct(svActual,1)}</div>
+              <div class="target">无目标</div>
+            </div>
+          </div>
+          <div class="subs">${subsHTML}</div>
+        </div>
+      `;
+    };
     pools.innerHTML =
-      reCard(reSubs) +
       card(`${cnFlag} RMB 池（人民币）`,   "var(--rmb)", rmbTarget, rmbActual, rmbSubs) +
-      card("🌏 海外池（USD + HKD）", "var(--usd)", ovsTarget, ovsActual, ovsSubs);
+      card("🌏 海外池（USD + HKD）", "var(--usd)", ovsTarget, ovsActual, ovsSubs) +
+      reCard(reSubs) +
+      svCard(svSubs);
   }
 
   // ---- 健康检查（紧凑单行版）----
