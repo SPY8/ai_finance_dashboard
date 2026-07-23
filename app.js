@@ -17,6 +17,7 @@
     C.fetchJson("target.json"),
     C.fetchJson("history.json"),
     fetch(C.getDataPath("recurring.json"),{cache:"no-store"}).then(r => r.json()).catch(() => null),
+    loadElasticAnnual(),
   ]).then(([target, history, recurring]) => {
     const snaps = (history.snapshots || []).slice().sort((a,b) => a.date.localeCompare(b.date));
     if (snaps.length === 0) {
@@ -116,10 +117,24 @@ python3 -m http.server 8765</pre>
       : `${deltaTotal>=0?"+":""}${fmtK(deltaTotal)} (${(deltaPct*100).toFixed(2)}%)`;
     const deltaCls = !prev ? "flat" : (deltaTotal > 0 ? "up" : (deltaTotal < 0 ? "down" : "flat"));
 
-    const overModules  = cur.modules.filter(m => m.status === "over").length;
-    const underModules = cur.modules.filter(m => m.status === "under").length;
-    const overSubs     = cur.modules.flatMap(m => m.subs).filter(s => s.status === "over").length;
-    const underSubs    = cur.modules.flatMap(m => m.subs).filter(s => s.status === "under").length;
+    // === 资产归属聚合（按子项 belongTo，缺省 family；范围=四象限+不动产+纪念品=总盘）===
+    // belongTo 取值 → 中文标签；预设顺序决定卡片里三档的排列（小家 → 杨岳父母 → 刘辉父母）。
+    const BELONG_LABELS = { family: "小家", wife_parents: "杨岳父母", luffy_parents: "刘辉父母" };
+    const BELONG_ORDER  = ["family", "wife_parents", "luffy_parents"];
+    const belongTotals = {};
+    const collectBelong = function (s) {
+      if (!s || !s.rmb) return;
+      const b = s.belongTo || "family";
+      belongTotals[b] = (belongTotals[b] || 0) + s.rmb;
+    };
+    cur.modules.forEach(function (m) { m.subs.forEach(collectBelong); });
+    (cur.realEstate || []).forEach(collectBelong);
+    (cur.souvenirs || []).forEach(collectBelong);
+    const belongKeys = Object.keys(belongTotals);
+    const belongOrdered = BELONG_ORDER.filter(function (k) { return belongTotals[k] != null; })
+      .concat(belongKeys.filter(function (k) { return BELONG_ORDER.indexOf(k) === -1; }));
+    const belongVals = belongOrdered.map(function (k) { return fmtK(belongTotals[k]); });
+    const belongLbls = belongOrdered.map(function (k) { return BELONG_LABELS[k] || k; });
 
     // === 主 KPI（4 张）===
     const main = [
@@ -129,6 +144,13 @@ python3 -m http.server 8765</pre>
         sub: `金融 ${fmtK(financialTotal)} · 房产 ${fmtK(realEstateTotal)} · 纪念品 ${fmtK(souvenirsTotal)}`,
         help: "总盘=所有模块子项折RMB市值之和；金融盘=剔除房产+纪念品+待变现；房产=realEstateTotal；纪念品=souvenirsTotal",
         delta: deltaText, deltaCls,
+        tone: "ok",
+      },
+      {
+        label: "资产归属",
+        value: belongVals.join(" / "),
+        sub: belongLbls.join(" / "),
+        help: "按子项 belongTo 聚合的折RMB市值；缺省归属 family。范围=四象限+不动产+纪念品=总盘",
         tone: "ok",
       },
       {
@@ -144,13 +166,6 @@ python3 -m http.server 8765</pre>
         sub: rmbPct > 0.70 ? "已超 70% 红线" : (rmbPct > 0.60 ? "高于 V2.0 目标 60%" : "在目标内"),
         help: "RMB子项折RMB市值占总盘比例；红线70%/目标60%",
         tone: rmbPct > 0.70 ? "danger" : (rmbPct > 0.60 ? "warn" : "ok"),
-      },
-      {
-        label: "象限 / 子项告警",
-        value: `${overModules+underModules} / ${overSubs+underSubs}`,
-        sub: (overModules+underModules) === 0 ? "全部模块在阈值内" : `模块超${overModules} 偏低${underModules} · 子项超${overSubs} 偏低${underSubs}`,
-        help: "告警数：超/偏低模块数 / 超/偏低子项数（基于阈值判定）",
-        tone: overModules > 0 ? "danger" : (underModules > 0 || overSubs > 0 ? "warn" : "ok"),
       },
     ];
     $("#kpis").innerHTML = main.map(k => `
@@ -224,8 +239,32 @@ python3 -m http.server 8765</pre>
   }
 
   // ---- 年支出 / 被动收入估算（用于退休缺口）----
-  // 注意：依赖 recurring.json，但 app.js 本身不加载它；放一个占位读取
+  // 依赖 recurring.json + 最近一年 transactions/yearly/YYYY.json（弹性支出实绩）
   let _recurringCache = null;
+  let _elasticAnnual = null; // 来自最近一年账单的弹性支出年化；null=未取到
+  // 弹性支出兜底：无账单数据时用（ponytail: 仅当 transactions 缺失/为空时的回退，正常应被实绩覆盖）
+  const ELASTIC_FALLBACK = 260000;
+
+  // 按最新年份取 transactions，用 cashflow Tab 同口径算弹性支出年化
+  // 弹性 = transactions 里非 exclude 项的 projected_annual 之和（partial 按 yearProgress 推算全年）
+  function loadElasticAnnual() {
+    return C.fetchJson("transactions/index.json", { fallback: { years: [] } })
+      .then(idx => {
+        const years = (idx.years || []).slice().sort();
+        if (years.length === 0) return;
+        const latest = years[years.length - 1];
+        return C.fetchJson(`transactions/yearly/${latest}.json`);
+      })
+      .then(d => {
+        if (!d) return;
+        const isExcluded = (t) => !!(t && (t.exclude || t.excludeFromCashflow));
+        _elasticAnnual = (d.expenses || [])
+          .filter(t => !isExcluded(t))
+          .reduce((a, t) => a + (t.projected_annual ?? t.amount), 0);
+      })
+      .catch(() => { /* _elasticAnnual 保持 null，用兜底 */ });
+  }
+
   function loadRecurringOnce() {
     if (_recurringCache) return Promise.resolve(_recurringCache);
     return C.fetchJson("recurring.json").then(d => _recurringCache = d).catch(() => null);
@@ -240,8 +279,8 @@ python3 -m http.server 8765</pre>
       const a = toRMB(e.amount, e.ccy) * (e.frequency === "annual" ? 1 : 12);
       return acc + a;
     }, 0);
-    // 弹性支出按 ~26 万估（cashflow Tab 的 2026 预测）
-    const elasticAnnual = 260000;
+    // 弹性支出取最近一年 transactions 账单实绩年化；缺失回退常数兜底
+    const elasticAnnual = _elasticAnnual ?? ELASTIC_FALLBACK;
     return recurringAnnual + elasticAnnual;
   }
   function computeAnnualPassiveIncome(cur, target) {
@@ -267,7 +306,7 @@ python3 -m http.server 8765</pre>
 
   // 把年支出拆成「刚性 / 弹性」两个口径，用于 SWR 反推
   function computeAnnualExpenseBreakdown() {
-    if (!_recurringCache) return { rigid: 0, elastic: 260000, total: 260000 };
+    if (!_recurringCache) return { rigid: 0, elastic: ELASTIC_FALLBACK, total: ELASTIC_FALLBACK };
     const rates = _recurringCache._rates || { USD:6.8, HKD:0.87 };
     const toRMB = (a,c) => a * (c==="RMB" ? 1 : (rates[c] || 1));
     const rigid = (_recurringCache.expenses || []).reduce((acc,e) => {
@@ -275,7 +314,7 @@ python3 -m http.server 8765</pre>
       const a = toRMB(e.amount, e.ccy) * (e.frequency === "annual" ? 1 : 12);
       return acc + a;
     }, 0);
-    const elastic = 260000; // 与 computeAnnualExpenseEstimate 保持同一假设（cashflow Tab 的弹性估算）
+    const elastic = _elasticAnnual ?? ELASTIC_FALLBACK; // 与 computeAnnualExpenseEstimate 同口径
     return { rigid, elastic, total: rigid + elastic };
   }
 

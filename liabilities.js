@@ -627,7 +627,7 @@
   // ponytail: 对齐 categories.json 的 emoji + recurring 专属 income kind，手写映射避免再 fetch 一份 categories.json
   function kindLabel(kind) {
     const map = {
-      living: "🏠 居住",
+      living: "🏠 日常消费",
       food: "🍜 食品酒水",
       transport: "🚗 行车交通",
       kids: "👶 儿童相关",
