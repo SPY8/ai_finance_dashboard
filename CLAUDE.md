@@ -15,6 +15,19 @@ python3 -m http.server 8765
 
 改完 JS 后浏览器硬刷新（Cmd/Ctrl+Shift+R）。截图脚本：`node scripts/take_screenshots.mjs [port] [scale]`（需 puppeteer-core，依赖在 `/tmp/puppeteer-test`）。
 
+### 数据编辑器（方案 B · 写回 data/）
+
+要改 `data/*.json` 不用手写 JSON，启保存服务后用浏览器表单编辑、点保存直接落盘：
+
+```bash
+python3 scripts/edit_server.py [port]      # 默认 8765，托管静态站点 + /__edit__/* API
+# 浏览器打开 http://127.0.0.1:8765/editor.html
+```
+
+- 服务只绑 `127.0.0.1`，只写 `data/`（私有），白名单文件名防穿越；保存前自动跑 `backup_data.py` 打快照，原子写（临时文件 + `os.replace`）。
+- 覆盖 `recurring.json` / `target.json` / `history.json`（结构化表单，权重和校验、insurance 字段动态显隐）。`target.json` 保存时自动 append changelog + 刷 `updated`。
+- `demo_data/` 不被编辑器触碰，仍需手动同步。自检：`python3 scripts/edit_server.py --selfcheck`。
+
 ## 数据双层：demo_data（公开）vs data（私有，被 gitignore）
 
 - 仓库默认加载 `demo_data/`（虚构数据，任何人 clone 即可运行）。

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>数据编辑器 · 家庭财务看板</title>
+<style>
+  :root{
+    --bg-0:#15120f; --bg-1:#1d1916; --bg-2:#26211d; --bg-3:#312922;
+    --line:#3f362d; --line-2:#56493d;
+    --text-0:#f3eadf; --text-1:#d0c1ad; --text-2:#9d8b78; --text-3:#6f6052;
+    --accent:#98a687; --accent-2:#c1caaf;
+    --ok:#7aa07a; --warn:#c8925e; --danger:#be766e; --gold:#b69462;
+    --rmb:#7d8fb8; --usd:#7aa07a; --hkd:#a48cbc;
+    --radius:8px; --radius-sm:6px;
+  }
+  html[data-theme="light"]{
+    --bg-0:#f6f1e8; --bg-1:#fbf7f0; --bg-2:#efe7db; --bg-3:#e1d5c5;
+    --line:#d8ccbc; --line-2:#c4b49f;
+    --text-0:#2f2923; --text-1:#5e5347; --text-2:#715f4f; --text-3:#937d67;
+    --accent:#5f7053; --accent-2:#7d8f71;
+    --ok:#4d7151; --warn:#966336; --danger:#96524c; --gold:#916d34;
+    --rmb:#49689a; --usd:#3f7450; --hkd:#76529a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg-0);color:var(--text-0);font-family:Inter,"PingFang SC","Microsoft YaHei",system-ui,sans-serif;font-size:13px;line-height:1.5}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 22px 80px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:14px;border-bottom:1px solid var(--line);padding-bottom:12px;margin-bottom:14px;flex-wrap:wrap}
+  h1{margin:0;font-size:16px;font-weight:600}
+  .sub{color:var(--text-2);font-size:11px}
+  .top-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .num{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+
+  .file-tabs{display:flex;gap:0;border-bottom:1px solid var(--line);margin-bottom:14px;overflow-x:auto}
+  .file-tab{background:transparent;border:none;color:var(--text-2);font:inherit;font-size:13px;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;font-weight:500;white-space:nowrap}
+  .file-tab:hover{color:var(--text-0)}
+  .file-tab.active{color:var(--text-0);border-bottom-color:var(--accent)}
+  .file-tab .badge{font-size:10px;color:var(--text-3);margin-left:6px;font-family:"JetBrains Mono",monospace}
+
+  .btn{appearance:none;border:1px solid var(--line);background:var(--bg-2);color:var(--text-1);border-radius:999px;padding:5px 12px;font-size:11px;line-height:1.4;cursor:pointer;font-family:"JetBrains Mono",monospace}
+  .btn:hover{border-color:var(--line-2);color:var(--text-0)}
+  .btn.primary{border-color:var(--accent);color:var(--text-0);background:rgba(152,166,135,.16)}
+  .btn.primary:hover{border-color:var(--accent-2)}
+  .btn.danger{border-color:var(--danger);color:var(--danger)}
+  .btn.ghost{background:transparent}
+  .btn:disabled{opacity:.4;cursor:not-allowed}
+
+  input,select,textarea{background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:5px 8px;color:var(--text-0);font:inherit;font-size:12px;width:100%}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  input[type=number]{font-family:"JetBrains Mono",monospace}
+  textarea{min-height:120px;font-family:"JetBrains Mono",monospace;font-size:11px;resize:vertical}
+  label{color:var(--text-2);font-size:11px;display:block;margin-bottom:2px}
+
+  .card{background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:12px}
+  .card h2{margin:0 0 10px;font-size:12px;color:var(--text-1);font-weight:500;text-transform:uppercase;letter-spacing:.3px;display:flex;align-items:center;gap:8px}
+  .card h2 .hint{margin-left:auto;font-size:10px;color:var(--text-3);text-transform:none;letter-spacing:0;font-weight:400}
+
+  table.rows{width:100%;border-collapse:collapse;font-size:12px}
+  table.rows th{font-weight:500;color:var(--text-3);font-size:10px;letter-spacing:.3px;text-transform:uppercase;text-align:left;padding:5px 6px;border-bottom:1px solid var(--line);background:var(--bg-2)}
+  table.rows td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.rows tr:last-child td{border-bottom:none}
+  table.rows input,table.rows select{padding:3px 6px;font-size:11px}
+  table.rows td.num input{text-align:right}
+  .row-del{color:var(--danger);cursor:pointer;background:none;border:none;font-size:14px;line-height:1;padding:4px}
+  .row-del:hover{color:var(--text-0)}
+
+  .validate-bar{position:sticky;bottom:0;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .validate-bar .msg{font-size:12px;flex:1;min-width:200px}
+  .validate-bar .msg.ok{color:var(--ok)}
+  .validate-bar .msg.warn{color:var(--warn)}
+  .validate-bar .msg.err{color:var(--danger)}
+
+  .toast{position:fixed;top:14px;right:14px;z-index:9999;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;font-size:12px;box-shadow:0 8px 30px rgba(0,0,0,.3);opacity:0;transform:translateY(-6px);transition:.18s;pointer-events:none;max-width:360px}
+  .toast.show{opacity:1;transform:translateY(0)}
+  .toast.ok{border-color:var(--ok);color:var(--ok)}
+  .toast.err{border-color:var(--danger);color:var(--danger)}
+
+  .pill{display:inline-block;font-size:10px;padding:1px 7px;border-radius:3px;font-family:"JetBrains Mono",monospace;font-weight:500}
+  .pill.ok{background:rgba(122,160,122,.16);color:var(--ok)}
+  .pill.warn{background:rgba(200,146,94,.16);color:var(--warn)}
+  .pill.err{background:rgba(190,118,110,.18);color:var(--danger)}
+
+  .empty{color:var(--text-3);font-size:12px;padding:20px;text-align:center}
+  .kv{display:flex;justify-content:space-between;gap:10px;padding:3px 0;border-bottom:1px dashed var(--line);font-size:12px}
+  .kv:last-child{border-bottom:none}
+  .kv span:first-child{color:var(--text-2)}
+  .kv b{color:var(--text-0);font-family:"JetBrains Mono",monospace;font-weight:500}
+
+  .mod-block{border:1px solid var(--line);border-radius:var(--radius);padding:12px;margin-bottom:10px;background:var(--bg-2)}
+  .mod-head{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+  .mod-head .nm{font-weight:600;flex:1;min-width:120px}
+  .indent{margin-left:14px;padding-left:12px;border-left:2px solid var(--line)}
+
+  .loading{color:var(--text-3);padding:30px;text-align:center}
+  a{color:var(--accent-2)}
+  .note-line{color:var(--text-3);font-size:11px;margin-top:6px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>数据编辑器</h1>
+      <div class="sub">直接写回 <code>data/</code> · 保存前自动备份 · 仅本地 127.0.0.1</div>
+    </div>
+    <div class="top-actions">
+      <a class="btn ghost" href="index.html">← 返回看板</a>
+      <button class="btn ghost" id="reload-btn" type="button">重载</button>
+      <button class="btn primary" id="save-btn" type="button" disabled>保存</button>
+    </div>
+  </header>
+
+  <nav class="file-tabs" id="file-tabs">
+    <button class="file-tab" data-file="recurring.json">recurring.json<span class="badge">收支</span></button>
+    <button class="file-tab" data-file="target.json">target.json<span class="badge">战略</span></button>
+    <button class="file-tab" data-file="history.json">history.json<span class="badge">快照</span></button>
+  </nav>
+
+  <div id="editor-root"><div class="loading">加载中…</div></div>
+
+  <div class="validate-bar" id="validate-bar">
+    <div class="msg" id="validate-msg">未加载</div>
+    <div class="top-actions">
+      <input id="save-note" placeholder="保存说明（写入备份 manifest）" style="width:240px" />
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script src="editor.js?v=20260729"></script>
+</body>
+</html>
