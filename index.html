@@ -410,6 +410,15 @@
   .lia-table tr.due-soon td{background:rgba(255,92,122,.05)}
   .lia-table tr:hover td{background:var(--hover-soft)}
   .lia-table tr.urgent:hover td{background:rgba(255,180,84,.07)}
+  /* ponytail: 预算vs实际 —— 第一列含 <b>+小字两行，自然布局下浏览器给首列过多宽度，
+     挤压数字列导致标题与数据错位。改左对齐 + table-layout:fixed 固定列宽比例。 */
+  #budget-vs-actual{table-layout:fixed}
+  #budget-vs-actual th,#budget-vs-actual td{text-align:left}
+  #budget-vs-actual th:nth-child(1),#budget-vs-actual td:nth-child(1){width:36%}
+  #budget-vs-actual th:nth-child(2),#budget-vs-actual td:nth-child(2){width:16%}
+  #budget-vs-actual th:nth-child(3),#budget-vs-actual td:nth-child(3){width:16%}
+  #budget-vs-actual th:nth-child(4),#budget-vs-actual td:nth-child(4){width:18%}
+  #budget-vs-actual th:nth-child(5),#budget-vs-actual td:nth-child(5){width:14%;text-align:center}
 
   .countdown{font-family:"JetBrains Mono",monospace;font-size:10px;padding:1px 6px;border-radius:3px;display:inline-block}
   .countdown.soon{background:rgba(255,92,122,.14);color:var(--danger)}

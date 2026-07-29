@@ -4,20 +4,96 @@
   "asOf": "2024-12-31",
   "yearProgress": 1.0,
   "note": "DEMO 2024 完整年度账单。粗粒度按大类汇总。",
-
   "expenses": [
-    { "key":"food",           "category":"food",          "name":"食品酒水", "amount": 18000, "ccy":"RMB", "by":"joint" },
-    { "key":"travel",         "category":"travel",        "name":"出差旅游", "amount": 14000, "ccy":"RMB", "by":"joint" },
-    { "key":"outdoor_sport",  "category":"outdoor_sport", "name":"运动相关", "amount": 12000, "ccy":"RMB", "by":"self",  "note":"Self滑雪/骑行/户外" },
-    { "key":"shopping",       "category":"shopping",      "name":"购物消费", "amount":  9000, "ccy":"RMB", "by":"joint" },
-    { "key":"transport",      "category":"transport",     "name":"行车交通", "amount":  7500, "ccy":"RMB", "by":"self",  "note":"油费/打车/路桥；车险走 recurring" },
-    { "key":"living",         "category":"living",        "name":"居家生活", "amount":  6000, "ccy":"RMB", "by":"joint", "note":"水电/物业/家居杂项；不含房租" },
-    { "key":"kids",           "category":"kids",          "name":"Kid1+Kid2","amount":  5500, "ccy":"RMB", "by":"joint", "note":"两娃学费/兴趣班/用品" }
+    {
+      "key": "food",
+      "category": "food",
+      "name": "食品酒水",
+      "amount": 18000,
+      "ccy": "RMB",
+      "by": "joint"
+    },
+    {
+      "key": "travel",
+      "category": "travel",
+      "name": "出差旅游",
+      "amount": 14000,
+      "ccy": "RMB",
+      "by": "joint"
+    },
+    {
+      "key": "outdoor_sport",
+      "category": "outdoor_sport",
+      "name": "运动相关",
+      "amount": 12000,
+      "ccy": "RMB",
+      "by": "self",
+      "note": "Self滑雪/骑行/户外"
+    },
+    {
+      "key": "shopping",
+      "category": "shopping",
+      "name": "购物消费",
+      "amount": 9000,
+      "ccy": "RMB",
+      "by": "joint"
+    },
+    {
+      "key": "transport",
+      "category": "transport",
+      "name": "行车交通",
+      "amount": 7500,
+      "ccy": "RMB",
+      "by": "self",
+      "note": "油费/打车/路桥；车险走 recurring"
+    },
+    {
+      "key": "living",
+      "category": "living",
+      "name": "居家生活",
+      "amount": 6000,
+      "ccy": "RMB",
+      "by": "joint",
+      "note": "水电/物业/家居杂项；不含房租"
+    },
+    {
+      "key": "kids",
+      "category": "kids",
+      "name": "Kid1+Kid2",
+      "amount": 5500,
+      "ccy": "RMB",
+      "by": "joint",
+      "note": "两娃学费/兴趣班/用品"
+    }
   ],
-
   "incomes": [
-    { "key":"salary_self",  "category":"salary",        "name":"Self工资（含奖金）", "amount": 264000, "ccy":"RMB", "by":"self", "recurring":"salary_self" },
-    { "key":"salary_wife",  "category":"salary",        "name":"Spouse工资",           "amount": 144000, "ccy":"RMB", "by":"wife", "recurring":"salary_wife" },
-    { "key":"rent_property_a", "category":"rental_income", "name":"房产 A 房租",        "amount":  54000, "ccy":"RMB", "by":"self", "recurring":"property_a_rent", "note":"4500 ×12" }
+    {
+      "key": "salary_self",
+      "category": "salary",
+      "name": "Self工资（含奖金）",
+      "amount": 264000,
+      "ccy": "RMB",
+      "by": "self",
+      "recurring": "salary_self"
+    },
+    {
+      "key": "salary_wife",
+      "category": "salary",
+      "name": "Spouse工资",
+      "amount": 144000,
+      "ccy": "RMB",
+      "by": "wife",
+      "recurring": "salary_wife"
+    },
+    {
+      "key": "rent_property_a",
+      "category": "rental_income",
+      "name": "房产 A 房租",
+      "amount": 54000,
+      "ccy": "RMB",
+      "by": "self",
+      "recurring": "property_a_rent",
+      "note": "4500 ×12"
+    }
   ]
 }

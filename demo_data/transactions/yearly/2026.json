@@ -4,20 +4,103 @@
   "asOf": "2026-05-17",
   "yearProgress": 0.375,
   "note": "DEMO：截止 2026-05-17 的随手记数据，按 137/365 ≈ 37.5% 进度年化预测全年。不含房租/保险（走 recurring.json）。年底用真实数据覆盖。",
-
   "expenses": [
-    { "key":"food",           "category":"food",          "name":"食品酒水",  "amount": 8200, "ccy":"RMB", "by":"joint", "actual_ytd": 8200, "projected_annual": 21867 },
-    { "key":"travel",         "category":"travel",        "name":"出差旅游",  "amount": 8500, "ccy":"RMB", "by":"joint", "actual_ytd": 8500, "projected_annual": 22667 },
-    { "key":"outdoor_sport",  "category":"outdoor_sport", "name":"运动相关",  "amount": 6500, "ccy":"RMB", "by":"self",  "actual_ytd": 6500, "projected_annual": 17333, "note":"Self滑雪/骑行/户外" },
-    { "key":"shopping",       "category":"shopping",      "name":"购物消费",  "amount": 4800, "ccy":"RMB", "by":"joint", "actual_ytd": 4800, "projected_annual": 12800 },
-    { "key":"transport",      "category":"transport",     "name":"行车交通",  "amount": 3500, "ccy":"RMB", "by":"self",  "actual_ytd": 3500, "projected_annual":  9333, "note":"油费/打车/路桥；车险/停车走 recurring 避免双重计算" },
-    { "key":"living",         "category":"living",        "name":"居家生活",  "amount": 3200, "ccy":"RMB", "by":"joint", "actual_ytd": 3200, "projected_annual":  8533, "note":"水电/物业/家居杂项；不含房租" },
-    { "key":"kids",           "category":"kids",          "name":"Kid1+Kid2", "amount": 2800, "ccy":"RMB", "by":"joint", "actual_ytd": 2800, "projected_annual":  7467, "note":"两娃学费/兴趣班/用品" }
+    {
+      "key": "food",
+      "category": "food",
+      "name": "食品酒水",
+      "amount": 8200,
+      "ccy": "RMB",
+      "by": "joint",
+      "projected_annual": 21867
+    },
+    {
+      "key": "travel",
+      "category": "travel",
+      "name": "出差旅游",
+      "amount": 8500,
+      "ccy": "RMB",
+      "by": "joint",
+      "projected_annual": 22667
+    },
+    {
+      "key": "outdoor_sport",
+      "category": "outdoor_sport",
+      "name": "运动相关",
+      "amount": 6500,
+      "ccy": "RMB",
+      "by": "self",
+      "projected_annual": 17333,
+      "note": "Self滑雪/骑行/户外"
+    },
+    {
+      "key": "shopping",
+      "category": "shopping",
+      "name": "购物消费",
+      "amount": 4800,
+      "ccy": "RMB",
+      "by": "joint",
+      "projected_annual": 12800
+    },
+    {
+      "key": "transport",
+      "category": "transport",
+      "name": "行车交通",
+      "amount": 3500,
+      "ccy": "RMB",
+      "by": "self",
+      "projected_annual": 9333,
+      "note": "油费/打车/路桥；车险/停车走 recurring 避免双重计算"
+    },
+    {
+      "key": "living",
+      "category": "living",
+      "name": "居家生活",
+      "amount": 3200,
+      "ccy": "RMB",
+      "by": "joint",
+      "projected_annual": 8533,
+      "note": "水电/物业/家居杂项；不含房租"
+    },
+    {
+      "key": "kids",
+      "category": "kids",
+      "name": "Kid1+Kid2",
+      "amount": 2800,
+      "ccy": "RMB",
+      "by": "joint",
+      "projected_annual": 7467,
+      "note": "两娃学费/兴趣班/用品"
+    }
   ],
-
   "incomes": [
-    { "key":"salary_self",  "category":"salary",        "name":"Self工资（含奖金）", "amount": 22000,  "ccy":"RMB", "by":"self", "recurring":"salary_self", "note":"DEMO：填实际到手，截止 5/16 已发到 5 个月" },
-    { "key":"salary_wife",  "category":"salary",        "name":"Spouse工资",           "amount": 12000,  "ccy":"RMB", "by":"wife", "recurring":"salary_wife" },
-    { "key":"rent_property_a", "category":"rental_income", "name":"房产 A 房租",         "amount":  4500,  "ccy":"RMB", "by":"self", "recurring":"property_a_rent" }
+    {
+      "key": "salary_self",
+      "category": "salary",
+      "name": "Self工资（含奖金）",
+      "amount": 22000,
+      "ccy": "RMB",
+      "by": "self",
+      "recurring": "salary_self",
+      "note": "DEMO：填实际到手，截止 5/16 已发到 5 个月"
+    },
+    {
+      "key": "salary_wife",
+      "category": "salary",
+      "name": "Spouse工资",
+      "amount": 12000,
+      "ccy": "RMB",
+      "by": "wife",
+      "recurring": "salary_wife"
+    },
+    {
+      "key": "rent_property_a",
+      "category": "rental_income",
+      "name": "房产 A 房租",
+      "amount": 4500,
+      "ccy": "RMB",
+      "by": "self",
+      "recurring": "property_a_rent"
+    }
   ]
 }
