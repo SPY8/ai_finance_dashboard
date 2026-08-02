@@ -71,6 +71,32 @@
     const latestTotal = latestSnap ? computeSnapshotTotal(latestSnap, rates, target) : 0;
     const netWorth = latestTotal - totalDebtRMB;
 
+    // ---- 资产归属聚合（按子项 belongTo，缺省 family；范围=四象限+不动产+纪念品=总盘）----
+    // ponytail: 复用 app.js 口径，把 latestSnap enrich 后的所有 sub 按 belongTo 加总。
+    const BELONG_LABELS = { family: "小家", wife_parents: "杨岳父母", luffy_parents: "刘辉父母" };
+    const BELONG_ORDER  = ["family", "wife_parents", "luffy_parents"];
+    const belongTotals = {};
+    if (latestSnap) {
+      const enriched = C.enrichSnapshot(latestSnap, target);
+      const collectBelong = function (s) {
+        if (!s || !s.rmb) return;
+        const b = s.belongTo || "family";
+        belongTotals[b] = (belongTotals[b] || 0) + s.rmb;
+      };
+      enriched.modules.forEach(function (m) { m.subs.forEach(collectBelong); });
+      (enriched.realEstate || []).forEach(collectBelong);
+      (enriched.souvenirs || []).forEach(collectBelong);
+    }
+    const belongKeys = Object.keys(belongTotals);
+    const belongOrdered = BELONG_ORDER.filter(function (k) { return belongTotals[k] != null; })
+      .concat(belongKeys.filter(function (k) { return BELONG_ORDER.indexOf(k) === -1; }));
+    const belongSum = belongOrdered.reduce(function (a, k) { return a + belongTotals[k]; }, 0);
+    const belongLines = belongOrdered.map(function (k) {
+      const v = belongTotals[k];
+      const share = belongSum > 0 ? v / belongSum : 0;
+      return `${BELONG_LABELS[k] || k} ${fmtK(v)} (${(share*100).toFixed(1)}%)`;
+    });
+
     // ---- 保单现金价值（当年合计 + 当年各保单值，供 KPI 和曲线图共用）----
     const cvYear = today.getFullYear();
     const cvPolicies = (rec.expenses || []).filter(e => e && e.kind === "insurance" && e.cashValueSchedule);
@@ -146,6 +172,13 @@
         value: fmtK(netWorth),
         sub: `软性负债 ${fmtK(softDebtRMB)} 不计入扣减`,
         help: "净资产=总资产-硬性负债；软性负债单列（不扣减）",
+        tone: "ok",
+      },
+      {
+        label: "资产归属",
+        value: belongSum > 0 ? fmtK(belongSum) : "—",
+        sub: belongLines.join(" · ") || "无快照",
+        help: "按子项 belongTo 聚合的折RMB市值；缺省归属 family。范围=四象限+不动产+纪念品=总盘",
         tone: "ok",
       },
       {
