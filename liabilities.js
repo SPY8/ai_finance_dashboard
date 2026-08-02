@@ -71,8 +71,8 @@
     const latestTotal = latestSnap ? computeSnapshotTotal(latestSnap, rates, target) : 0;
     const netWorth = latestTotal - totalDebtRMB;
 
-    // ---- 资产归属聚合（按子项 belongTo，缺省 family；范围=四象限+不动产+纪念品=总盘）----
-    // ponytail: 复用 app.js 口径，把 latestSnap enrich 后的所有 sub 按 belongTo 加总。
+    // ---- 资产归属聚合（按子项 belongTo，缺省 family；口径=总现金卡片：金融盘，不含不动产/纪念品）----
+    // ponytail: 与 computeSnapshotTotal 同口径——只算四象限 modules 的 sub，排除 realEstate/souvenirs。
     const BELONG_LABELS = { family: "小家", wife_parents: "杨岳父母", luffy_parents: "刘辉父母" };
     const BELONG_ORDER  = ["family", "wife_parents", "luffy_parents"];
     const belongTotals = {};
@@ -84,8 +84,6 @@
         belongTotals[b] = (belongTotals[b] || 0) + s.rmb;
       };
       enriched.modules.forEach(function (m) { m.subs.forEach(collectBelong); });
-      (enriched.realEstate || []).forEach(collectBelong);
-      (enriched.souvenirs || []).forEach(collectBelong);
     }
     const belongKeys = Object.keys(belongTotals);
     const belongOrdered = BELONG_ORDER.filter(function (k) { return belongTotals[k] != null; })
@@ -178,7 +176,7 @@
         label: "资产归属",
         value: belongSum > 0 ? fmtK(belongSum) : "—",
         sub: belongLines.join(" · ") || "无快照",
-        help: "按子项 belongTo 聚合的折RMB市值；缺省归属 family。范围=四象限+不动产+纪念品=总盘",
+        help: "按子项 belongTo 聚合的折RMB市值；缺省归属 family。口径=总现金卡片（金融盘，不含不动产/纪念品）",
         tone: "ok",
       },
       {
