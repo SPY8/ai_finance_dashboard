@@ -18,6 +18,7 @@
   let original = null;   // 加载时的深拷贝，用于脏检测
   let working = null;    // 表单正在编辑的对象
   let targetNames = {};  // history 编辑时：target.json 的 key→name 映射，用于 holdings 行旁注
+  let targetNames = {};  // history 编辑时：target.json 的 key→name 映射，用于 holdings 行旁注
 
   const ENUMS = {
     ccy: ["RMB", "USD", "HKD"],
@@ -25,6 +26,8 @@
     kindIn: ["salary", "rental_income", "interest", "dividend", "other"],
     kindEx: ["insurance", "mortgage", "rent", "transport", "utility", "education", "other"],
     phase: ["active", "planned", "blocked", "hold", "closed", "exit"],
+    liaType: ["hard", "soft"],
+    liaAccrual: ["none", "monthly_inflow"],
     liaType: ["hard", "soft"],
     liaAccrual: ["none", "monthly_inflow"],
   };
@@ -89,6 +92,18 @@
       return m;
     } catch (e) { return {}; }
   }
+  // 收集 target.json 所有 sub/realEstate/souvenirs 的 key→name，用于 history holdings 行旁注。
+  // 失败返回空映射，不阻塞 history 编辑。
+  async function loadTargetNames() {
+    try {
+      const t = await apiLoad("target.json");
+      const m = {};
+      (t.modules || []).forEach(mod => (mod.subs || []).forEach(s => { if (s.key) m[s.key] = s.name || s.key; }));
+      (t.realEstate || []).forEach(re => { if (re && re.key) m[re.key] = re.name || re.key; });
+      (t.souvenirs || []).forEach(sv => { if (sv && sv.key) m[sv.key] = sv.name || sv.key; });
+      return m;
+    } catch (e) { return {}; }
+  }
   async function apiSave(file, data, note) {
     const r = await fetch(`${API}/save`, {
       method: "POST",
@@ -124,6 +139,10 @@
         targetNames = await loadTargetNames();
         selSnap = -1;  // 进入时重置，让首次渲染自动选中最近一条
       }
+      if (file === "history.json") {
+        targetNames = await loadTargetNames();
+        selSnap = -1;  // 进入时重置，让首次渲染自动选中最近一条
+      }
       render();
       validate();
     } catch (err) {
@@ -137,9 +156,84 @@
     root.innerHTML = "";
     if (currentFile === "recurring.json") renderRecurring();
     else if (currentFile === "liabilities.json") renderLiabilities();
+    else if (currentFile === "liabilities.json") renderLiabilities();
     else if (currentFile === "target.json") renderTarget();
     else if (currentFile === "history.json") renderHistory();
     else root.appendChild(el("div", { class: "card" }, "未知文件"));
+  }
+
+  // =============== liabilities.json ===============
+  // 负债条目：type(hard 扣净资产 / soft 不扣)、本金、利率、月/年利息、可选 monthly_inflow 动态累积。
+  function renderLiabilities() {
+    root.appendChild(card("负债清单 · liabilities", "硬性(hard)扣减净资产；软性(soft)不扣。monthly_inflow 类型按 startDate×monthlyInflow 动态累积本金，看板会覆盖 principal。", () => liaTable()));
+  }
+  function liaTable() {
+    const arr = working.liabilities || [];
+    return el("table", { class: "rows" }, [
+      el("thead", {}, el("tr", {}, [
+        th("名称"), th("性质"), th("币种"), th("本金"), th("年化利率"), th("月利息"), th("年利息"), th("扣净资产"), th("累积方式"), th("起"), th("止"), th("备注"), th("")
+      ])),
+      el("tbody", {}, arr.map((row, i) => liaRow(i))),
+      el("tfoot", {}, el("tr", {}, [
+        el("td", { colspan: "13" }, addBtn("＋ 新增负债", () => {
+          working.liabilities.push({ name: "", type: "hard", ccy: "RMB", principal: 0, interestRate: 0, monthlyInterest: 0, annualInterest: 0, deductFromNet: true, accrual: "none", startDate: null, endDate: null, note: "" });
+          render(); validate();
+        })),
+      ])),
+    ]);
+  }
+  function liaRow(i) {
+    const path = (f) => ["liabilities", i, f];
+    const row = working.liabilities[i];
+    const isInflow = row.accrual === "monthly_inflow";
+    // type 切换时同步 deductFromNet 默认值（hard=true / soft=false），除非用户已显式设过
+    const onType = (v) => {
+      setVal(working, path("type"), v);
+      setVal(working, path("deductFromNet"), v === "hard");
+      render(); validate();
+    };
+    return el("tr", {}, [
+      td(inp("text", row.name || "", v => setVal(working, path("name"), v))),
+      td(sel(ENUMS.liaType, row.type || "hard", onType)),
+      td(sel(ENUMS.ccy, row.ccy || "RMB", v => setVal(working, path("ccy"), v))),
+      td({ class: "num" }, inp("number", row.principal ?? 0, v => setVal(working, path("principal"), numOr(v, 0)))),
+      td({ class: "num" }, inp("number", row.interestRate ?? 0, v => setVal(working, path("interestRate"), numOr(v, 0)))),
+      td({ class: "num" }, inp("number", row.monthlyInterest ?? 0, v => setVal(working, path("monthlyInterest"), numOr(v, 0)))),
+      td({ class: "num" }, inp("number", row.annualInterest ?? 0, v => setVal(working, path("annualInterest"), numOr(v, 0)))),
+      td(liaDeductToggle(i)),
+      td(sel(ENUMS.liaAccrual, row.accrual || "none", v => { setVal(working, path("accrual"), v === "none" ? null : v); render(); validate(); })),
+      td(dateIn(row.startDate || "", v => setVal(working, path("startDate"), v || null))),
+      td(dateIn(row.endDate || "", v => setVal(working, path("endDate"), v || null))),
+      td(inp("text", row.note || "", v => setVal(working, path("note"), v))),
+      td(delBtn(() => { working.liabilities.splice(i, 1); render(); validate(); })),
+      ...isInflow ? [el("td", { colspan: "13", style: "padding:0 8px 8px" }, liaInflowExtra(i))] : [],
+    ]);
+  }
+  function liaDeductToggle(i) {
+    const row = working.liabilities[i];
+    const cb = el("input", { type: "checkbox" });
+    cb.checked = row.deductFromNet !== false;
+    cb.addEventListener("change", () => { setVal(working, ["liabilities", i, "deductFromNet"], cb.checked); validate(); });
+    return cb;
+  }
+  function liaInflowExtra(i) {
+    const path = (f) => ["liabilities", i, f];
+    const row = working.liabilities[i];
+    const start = row.startDate ? new Date(String(row.startDate).replace(/-(\d+)$/, "-$1-01")) : null;
+    let months = 0;
+    if (start) months = Math.max(0, Math.floor((Date.now() - start) / (1000 * 60 * 60 * 24 * 30.44)));
+    const accrued = months * (row.monthlyInflow || 0);
+    return el("div", { class: "mod-block", style: "margin-top:4px" }, [
+      el("div", { class: "mod-head" }, [
+        el("span", { class: "nm" }, "月存累积 · " + (row.name || "(name)")),
+        el("span", { class: "pill warn" }, "monthly_inflow"),
+        el("span", { class: "hint", style: "margin-left:8px;color:var(--text-3);font-weight:400" }, start ? `已累积约 ${months} 月 ≈ ${accrued}（看板会覆盖 principal）` : "需填 startDate"),
+      ]),
+      el("div", { style: "display:grid;grid-template-columns:1fr 1fr;gap:8px" }, [
+        field("monthlyInflow", () => inp("number", row.monthlyInflow ?? 0, v => { setVal(working, path("monthlyInflow"), numOr(v, 0)); validate(); })),
+        field("startDate（年-月，如 2021-06）", () => inp("text", row.startDate || "", v => { setVal(working, path("startDate"), v || null); validate(); })),
+      ]),
+    ]);
   }
 
   // =============== liabilities.json ===============
@@ -412,8 +506,39 @@
   // 每次报数结构相似，用下拉框选一条来改，避免全部罗列。
   // 新增 snapshot 推荐用 scripts/new_snapshot.py；此处负责微调/删除/重排/手填。
   let selSnap = -1;  // 当前选中的 snapshot 索引；-1 表示尚未初始化，渲染时指向最近一条
+  // snapshot 字段多且嵌套（rates/prices/holdings/cashFlow），结构化表格 + 折叠原始 JSON 兜底。
+  // 每次报数结构相似，用下拉框选一条来改，避免全部罗列。
+  // 新增 snapshot 推荐用 scripts/new_snapshot.py；此处负责微调/删除/重排/手填。
+  let selSnap = -1;  // 当前选中的 snapshot 索引；-1 表示尚未初始化，渲染时指向最近一条
   function renderHistory() {
     const snaps = working.snapshots || [];
+    // 默认选中最近一条（按 date 降序排在最前者）
+    if (selSnap < 0 || selSnap >= snaps.length) {
+      if (!snaps.length) selSnap = 0;
+      else selSnap = snaps.reduce((mx, s, i, arr) => String(s.date || "") >= String(arr[mx].date || "") ? i : mx, 0);
+    }
+    root.appendChild(card("说明", "history.json 是 append-only 快照数组。新增 snapshot 推荐用 python3 scripts/new_snapshot.py 生成后粘贴到选中那条的『原始 JSON』区；此处表格可微调数值/删除/重排。holdings 两种形态：现金类{raw}、证券类{shares,cost}（当前价取自 prices[key]）。", () => el("div", {})));
+    // 下拉选择某次报数（按时间倒序展示，最近一条在最上；value 仍为真实数组索引，不改变 append-only 顺序）
+    root.appendChild(el("div", { class: "card" }, [
+      el("h2", {}, [el("span", {}, "选择报数"), el("span", { class: "hint" }, snaps.length + " 条快照")]),
+      el("div", { style: "display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" }, [
+        field("snapshot", () => {
+          const order = snaps.map((_, i) => i).sort((a, b) => String(snaps[b].date || "").localeCompare(String(snaps[a].date || "")));
+          const e = el("select", {}, order.map(i => el("option", { value: String(i) }, "#" + (i + 1) + " · " + (snaps[i].date || "?") + (snaps[i].comment ? "  " + String(snaps[i].comment).slice(0, 30) : ""))));
+          e.value = String(selSnap);
+          e.addEventListener("change", () => { selSnap = Number(e.value); render(); validate(); });
+          return e;
+        }),
+        el("button", { class: "btn ghost", type: "button", title: "上一条", onclick: () => { if (selSnap > 0) { selSnap--; render(); validate(); } } }, "← 上一条"),
+        el("button", { class: "btn ghost", type: "button", title: "下一条", onclick: () => { if (selSnap < snaps.length - 1) { selSnap++; render(); validate(); } } }, "下一条 →"),
+        addBtn("＋ 新增空 snapshot（手动填）", () => {
+          working.snapshots.push({ date: new Date().toISOString().slice(0, 10), rates: { USD: 7.2, HKD: 0.92 }, ratesSource: "", comment: "", cashFlow: null, prices: {}, holdings: {} });
+          selSnap = working.snapshots.length - 1;
+          render(); validate();
+        }),
+      ]),
+    ]));
+    if (snaps.length) root.appendChild(snapBlock(selSnap));
     // 默认选中最近一条（按 date 降序排在最前者）
     if (selSnap < 0 || selSnap >= snaps.length) {
       if (!snaps.length) selSnap = 0;
@@ -445,12 +570,15 @@
   function snapBlock(i) {
     const s = working.snapshots[i];
     const sp = (f) => ["snapshots", i, f];
+    const sp = (f) => ["snapshots", i, f];
     return el("div", { class: "card" }, [
       el("h2", {}, [
         el("span", {}, "快照 #" + (i + 1) + " · " + (s.date || "?")),
         el("span", { class: "hint" }, (s.comment || "").slice(0, 40)),
         el("span", { class: "pill ok" }, i + 1 + " / " + working.snapshots.length),
+        el("span", { class: "pill ok" }, i + 1 + " / " + working.snapshots.length),
         el("button", { class: "btn ghost", type: "button", title: "上移", onclick: () => {
+          if (i > 0) { const a = working.snapshots[i - 1]; working.snapshots[i - 1] = working.snapshots[i]; working.snapshots[i] = a; selSnap = i - 1; render(); validate(); }
           if (i > 0) { const a = working.snapshots[i - 1]; working.snapshots[i - 1] = working.snapshots[i]; working.snapshots[i] = a; selSnap = i - 1; render(); validate(); }
         } }, "↑"),
         delBtn(() => { working.snapshots.splice(i, 1); render(); validate(); }),
@@ -492,7 +620,171 @@
           return ta;
         })(),
       ]),
+      // 元信息行
+      el("div", { style: "display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:8px;margin-bottom:10px" }, [
+        field("date", () => dateIn(s.date || "", v => { setVal(working, sp("date"), v || ""); validate(); })),
+        field("rates.USD→RMB", () => inp("number", (s.rates && s.rates.USD) ?? "", v => { setVal(working, sp("rates.USD"), numOr(v, 0)); validate(); })),
+        field("rates.HKD→RMB", () => inp("number", (s.rates && s.rates.HKD) ?? "", v => { setVal(working, sp("rates.HKD"), numOr(v, 0)); validate(); })),
+        field("ratesSource", () => inp("text", s.ratesSource || "", v => setVal(working, sp("ratesSource"), v))),
+      ]),
+      field("comment", () => inp("text", s.comment || "", v => setVal(working, sp("comment"), v))),
+      cashFlowBlock(i),
+      // prices 表
+      el("div", { class: "mod-block", style: "margin-top:10px" }, [
+        el("div", { class: "mod-head" }, [el("span", { class: "nm" }, "prices · 当前报价"), el("span", { class: "pill ok" }, Object.keys(s.prices || {}).length + " 项")]),
+        priceTable(i),
+      ]),
+      // holdings 表
+      el("div", { class: "mod-block", style: "margin-top:10px" }, [
+        el("div", { class: "mod-head" }, [el("span", { class: "nm" }, "holdings · 持仓"), el("span", { class: "pill ok" }, Object.keys(s.holdings || {}).length + " 项")]),
+        holdingTable(i),
+      ]),
+      // 折叠原始 JSON 兜底
+      el("details", { style: "margin-top:10px" }, [
+        el("summary", { style: "cursor:pointer;color:var(--text-2);font-size:11px" }, "原始 JSON（兜底 · 失焦校验回写）"),
+        (() => {
+          const ta = el("textarea", { rows: "14" });
+          ta.value = JSON.stringify(s, null, 2);
+          ta.addEventListener("blur", () => {
+            try {
+              working.snapshots[i] = JSON.parse(ta.value);
+              render(); validate();
+            } catch (e) {
+              ta.style.borderColor = "var(--danger)";
+              setMsg("snapshot #" + (i + 1) + " JSON 解析失败：" + e.message, "err");
+            }
+          });
+          return ta;
+        })(),
+      ]),
     ]);
+  }
+  function cashFlowBlock(i) {
+    const s = working.snapshots[i];
+    const sp = (f) => ["snapshots", i, f];
+    const cf = s.cashFlow;
+    const has = cf != null;
+    const cb = el("input", { type: "checkbox" });
+    cb.checked = has;
+    cb.addEventListener("change", () => {
+      if (cb.checked) setVal(working, sp("cashFlow"), { deposits: (cf && cf.deposits) || 0, withdrawals: (cf && cf.withdrawals) || 0, note: (cf && cf.note) || "" });
+      else setVal(working, sp("cashFlow"), null);
+      render(); validate();
+    });
+    if (!has) return el("div", { style: "margin-top:6px" }, [el("label", { style: "display:flex;align-items:center;gap:6px;cursor:pointer" }, [cb, " 本期有注资/抽资（cashFlow）"])]);
+    return el("div", { class: "mod-block", style: "margin-top:6px" }, [
+      el("div", { class: "mod-head" }, [el("label", { style: "display:flex;align-items:center;gap:6px;cursor:pointer;margin:0;font-weight:600" }, [cb, " cashFlow · 净注入/抽资"])]),
+      el("div", { style: "display:grid;grid-template-columns:1fr 1fr 2fr;gap:8px" }, [
+        field("deposits", () => inp("number", cf.deposits ?? 0, v => { setVal(working, sp("cashFlow.deposits"), numOr(v, 0)); validate(); })),
+        field("withdrawals", () => inp("number", cf.withdrawals ?? 0, v => { setVal(working, sp("cashFlow.withdrawals"), numOr(v, 0)); validate(); })),
+        field("note", () => inp("text", cf.note || "", v => setVal(working, sp("cashFlow.note"), v))),
+      ]),
+    ]);
+  }
+  function priceTable(i) {
+    const s = working.snapshots[i];
+    const prices = s.prices || {};
+    const keys = Object.keys(prices);
+    return el("table", { class: "rows" }, [
+      el("thead", {}, el("tr", {}, [th("key"), th("名称"), th("币种"), th("price"), th("")])),
+      el("tbody", {}, keys.map(k => priceRow(i, k))),
+      el("tfoot", {}, el("tr", {}, [
+        el("td", { colspan: "5" }, addBtn("＋ 新增 price", () => {
+          let n = 1; while (prices["new_price_" + n]) n++;
+          setVal(working, ["snapshots", i, "prices", "new_price_" + n], { ccy: "RMB", price: 0 });
+          render(); validate();
+        })),
+      ])),
+    ]);
+  }
+  function priceRow(i, k) {
+    const s = working.snapshots[i];
+    const p = s.prices[k];
+    const base = ["snapshots", i, "prices", k];
+    const nm = targetNames[k];
+    return el("tr", {}, [
+      td(keyInp(i, k, "price")),
+      td({ class: "num", style: "color:var(--text-1);font-size:12px" }, nm ? esc(nm) : (k in targetNames ? "" : "—")),
+      td(sel(ENUMS.ccy, p.ccy || "RMB", v => { setVal(working, [...base, "ccy"], v); validate(); })),
+      td({ class: "num" }, inp("number", p.price ?? 0, v => { setVal(working, [...base, "price"], numOr(v, 0)); validate(); })),
+      td(delBtn(() => { delete working.snapshots[i].prices[k]; render(); validate(); })),
+    ]);
+  }
+  function renamePriceKey(i, oldK, newK) {
+    if (newK === oldK) return;
+    const prices = working.snapshots[i].prices;
+    if (prices[newK] != null) { setMsg("prices 已有 key: " + newK, "err"); return false; }
+    prices[newK] = prices[oldK]; delete prices[oldK];
+    return true;
+  }
+  // key 输入框：input 时只暂存到 dataset，不立即 rename/re-render（避免每键触发 render 导致失焦）；change（失焦）时统一 rename。
+  function keyInp(i, k, kind) {
+    const e = el("input", { type: "text" });
+    e.value = k;
+    e.addEventListener("input", () => { e.dataset.dirty = "1"; validate(); });
+    e.addEventListener("change", () => {
+      if (e.dataset.dirty !== "1") return;
+      const newK = e.value.trim() || k;
+      const ok = kind === "price" ? renamePriceKey(i, k, newK) : renameHoldingKey(i, k, newK);
+      e.dataset.dirty = "";
+      if (ok) { render(); }
+      else { e.value = k; }
+      validate();
+    });
+    return e;
+  }
+  function holdingTable(i) {
+    const s = working.snapshots[i];
+    const holdings = s.holdings || {};
+    const keys = Object.keys(holdings);
+    return el("table", { class: "rows" }, [
+      el("thead", {}, el("tr", {}, [th("key"), th("名称"), th("类型"), th("归属"), th("金额/份额"), th("成本价"), th("市值"), th("")])),
+      el("tbody", {}, keys.map(k => holdingRow(i, k))),
+      el("tfoot", {}, el("tr", {}, [
+        el("td", { colspan: "8" }, addBtn("＋ 新增 holding（现金类）", () => {
+          let n = 1; while (holdings["new_holding_" + n]) n++;
+          setVal(working, ["snapshots", i, "holdings", "new_holding_" + n], { raw: 0 });
+          render(); validate();
+        })),
+      ])),
+    ]);
+  }
+  function holdingRow(i, k) {
+    const s = working.snapshots[i];
+    const h = s.holdings[k];
+    const base = ["snapshots", i, "holdings", k];
+    const isShares = h.shares != null;
+    const nm = targetNames[k];
+    const px = (s.prices && s.prices[k] && s.prices[k].price) || null;
+    const mv = isShares && px != null ? h.shares * px : null;
+    return el("tr", {}, [
+      td(keyInp(i, k, "holding")),
+      td({ class: "num", style: "color:var(--text-1);font-size:12px" }, [
+        nm ? esc(nm) : "—",
+        (k in targetNames) ? null : el("span", { class: "pill warn", style: "margin-left:4px" }, "游离"),
+      ]),
+      td(sel(["现金类", "证券类"], isShares ? "证券类" : "现金类", v => {
+        if (v === "现金类") setVal(working, base, { raw: h.raw ?? 0, belongTo: h.belongTo });
+        else setVal(working, base, { shares: h.shares ?? 0, cost: h.cost ?? 0, belongTo: h.belongTo });
+        render(); validate();
+      })),
+      td(sel(["family", "wife_parents", "luffy_parents"], h.belongTo || "family", v => { setVal(working, [...base, "belongTo"], v); validate(); })),
+      td({ class: "num" }, inp("number", isShares ? (h.shares ?? 0) : (h.raw ?? 0), v => {
+        if (isShares) setVal(working, [...base, "shares"], numOr(v, 0));
+        else setVal(working, [...base, "raw"], numOr(v, 0));
+        validate();
+      })),
+      td({ class: "num" }, isShares ? inp("number", h.cost ?? 0, v => { setVal(working, [...base, "cost"], numOr(v, 0)); validate(); }) : el("span", { style: "color:var(--text-3)" }, "—")),
+      td({ class: "num" }, mv != null ? el("span", { class: "num" }, Math.round(mv).toLocaleString("en-US")) : el("span", { style: "color:var(--warn)" }, px == null ? "无报价" : "—")),
+      td(delBtn(() => { delete working.snapshots[i].holdings[k]; render(); validate(); })),
+    ]);
+  }
+  function renameHoldingKey(i, oldK, newK) {
+    if (newK === oldK) return false;
+    const holdings = working.snapshots[i].holdings;
+    if (holdings[newK] != null) { setMsg("holdings 已有 key: " + newK, "err"); return false; }
+    holdings[newK] = holdings[oldK]; delete holdings[oldK];
+    return true;
   }
   function cashFlowBlock(i) {
     const s = working.snapshots[i];
@@ -664,6 +956,18 @@
         }
       });
     }
+    if (currentFile === "liabilities.json") {
+      (working.liabilities || []).forEach((l, i) => {
+        if (!l.name) problems.push("liabilities[" + i + "] 缺 name");
+        if (!l.ccy) problems.push("liabilities[" + i + "] 缺 ccy");
+        if (l.accrual === "monthly_inflow") {
+          if (!l.startDate) problems.push("liabilities[" + i + "] monthly_inflow 缺 startDate");
+          if (!(l.monthlyInflow > 0)) problems.push("liabilities[" + i + "] monthly_inflow 缺 monthlyInflow");
+        } else {
+          if (!(l.principal >= 0)) problems.push("liabilities[" + i + "] principal 异常");
+        }
+      });
+    }
     if (currentFile === "history.json") {
       const dates = (working.snapshots || []).map(s => s.date);
       const dup = dates.filter((d, idx) => d && dates.indexOf(d) !== idx);
@@ -671,6 +975,23 @@
       (working.snapshots || []).forEach((s, i) => {
         if (!s.date) problems.push("snapshot #" + (i + 1) + " 缺 date");
         if (!s.rates) problems.push("snapshot #" + (i + 1) + " 缺 rates");
+        // holdings/prices key 空值/重复
+        ["holdings", "prices"].forEach(prop => {
+          const keys = Object.keys(s[prop] || {});
+          const empties = keys.filter(k => !k || !k.trim());
+          if (empties.length) problems.push("snapshot #" + (i + 1) + " " + prop + " 有空 key");
+          const dupk = keys.filter((k, idx) => k && keys.indexOf(k) !== idx);
+          if (dupk.length) problems.push("snapshot #" + (i + 1) + " " + prop + " 重复 key: " + [...new Set(dupk)].join(", "));
+        });
+        // 证券类 holding 缺报价
+        const px = s.prices || {};
+        Object.entries(s.holdings || {}).forEach(([k, h]) => {
+          if (h.shares != null && (px[k] == null || px[k].price == null))
+            problems.push("snapshot #" + (i + 1) + " " + k + " 证券类但 prices 缺报价");
+        });
+        // cashFlow 勾选但全 0（非阻断式 warn，这里仍只作 problem 提示）
+        if (s.cashFlow && (s.cashFlow.deposits || 0) === 0 && (s.cashFlow.withdrawals || 0) === 0)
+          problems.push("snapshot #" + (i + 1) + " cashFlow 已启用但 deposits/withdrawals 均为 0");
         // holdings/prices key 空值/重复
         ["holdings", "prices"].forEach(prop => {
           const keys = Object.keys(s[prop] || {});
