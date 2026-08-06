@@ -335,6 +335,7 @@
       if (m) obj[m[1]] = Number(m[2]);
     });
     setVal(working, path, Object.keys(obj).length ? obj : null);
+    validate();
   }
 
   // =============== target.json ===============
