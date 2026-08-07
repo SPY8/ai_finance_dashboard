@@ -50,6 +50,7 @@
       renderKPIs(cur, prev, target);
       renderCoastCard(cur, target);
       renderModules(cur);
+      renderLiquidityCard(cur, target);
       renderAlerts(cur);
       renderCurrency(cur, target);
       renderTrends(enriched, dateKey, target);
@@ -1113,6 +1114,14 @@ python3 -m http.server 8765</pre>
         <span>·</span>
         <span>年化 <b class="${sign}">${(r.annualized*100).toFixed(1)}%</b></span>
       </div>`;
+  }
+
+  // ---- 资产流动性卡片（由 liabilities.js 提供渲染实现，复用同一份 classifyLiquidity 分档规则）----
+  // ponytail: 直接调用 liabilities.js 暴露的 renderLiquidityCard，不重复实现分档逻辑。
+  // cur 已在 enriched 流程里注入保单现金价值并 enrich，口径与负债页一致（总盘=金融盘+不动产+纪念品）。
+  function renderLiquidityCard(cur, target) {
+    const fn = (window.AssetLiability && window.AssetLiability.renderLiquidityCard) || null;
+    if (fn) fn(cur, target);
   }
 
   // ---- 里程碑 P0/P1/P2/P3 ----

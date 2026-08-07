@@ -586,10 +586,10 @@
     const holdings = s.holdings || {};
     const keys = Object.keys(holdings);
     return el("table", { class: "rows" }, [
-      el("thead", {}, el("tr", {}, [th("key"), th("名称"), th("类型"), th("归属"), th("金额/份额"), th("成本价"), th("市值"), th("")])),
+      el("thead", {}, el("tr", {}, [th("key"), th("名称"), th("类型"), th("归属"), th("流动性"), th("金额/份额"), th("成本价"), th("市值"), th("")])),
       el("tbody", {}, keys.map(k => holdingRow(i, k))),
       el("tfoot", {}, el("tr", {}, [
-        el("td", { colspan: "8" }, addBtn("＋ 新增 holding（现金类）", () => {
+        el("td", { colspan: "9" }, addBtn("＋ 新增 holding（现金类）", () => {
           let n = 1; while (holdings["new_holding_" + n]) n++;
           setVal(working, ["snapshots", i, "holdings", "new_holding_" + n], { raw: 0 });
           render(); validate();
@@ -612,11 +612,12 @@
         (k in targetNames) ? null : el("span", { class: "pill warn", style: "margin-left:4px" }, "游离"),
       ]),
       td(sel(["现金类", "证券类"], isShares ? "证券类" : "现金类", v => {
-        if (v === "现金类") setVal(working, base, { raw: h.raw ?? 0, belongTo: h.belongTo });
-        else setVal(working, base, { shares: h.shares ?? 0, cost: h.cost ?? 0, belongTo: h.belongTo });
+        if (v === "现金类") setVal(working, base, { raw: h.raw ?? 0, belongTo: h.belongTo, liquidity: h.liquidity });
+        else setVal(working, base, { shares: h.shares ?? 0, cost: h.cost ?? 0, belongTo: h.belongTo, liquidity: h.liquidity });
         render(); validate();
       })),
       td(sel(["family", "wife_parents", "luffy_parents"], h.belongTo || "family", v => { setVal(working, [...base, "belongTo"], v); validate(); })),
+      td(sel(["高", "中", "低"], h.liquidity || "中", v => { setVal(working, [...base, "liquidity"], v); validate(); })),
       td({ class: "num" }, inp("number", isShares ? (h.shares ?? 0) : (h.raw ?? 0), v => {
         if (isShares) setVal(working, [...base, "shares"], numOr(v, 0));
         else setVal(working, [...base, "raw"], numOr(v, 0));

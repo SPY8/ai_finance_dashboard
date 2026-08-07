@@ -519,6 +519,7 @@
         <button class="btn" id="theme-toggle" type="button">深色</button>
         <button class="btn" id="privacy-toggle" type="button">隐藏金额</button>
         <button class="btn ghost" id="help-open" type="button">导览</button>
+        <a class="btn ghost" href="editor.html" title="维护 data/ 数据文件">维护</a>
       </div>
     </div>
   </header>
@@ -552,6 +553,11 @@
       <div id="jump-mods"></div>
       <h2>标普家庭资产四象限<span class="hint">竖白线 = 目标值；浅色带 = 阈值区间；不动产已剥离到池分离，仅统计金融资产</span></h2>
       <div class="mods" id="mods"></div>
+    </section>
+
+    <section>
+      <h2>资产流动性<span class="hint">按变现难度分档，折 RMB · 口径=总盘（金融盘+不动产+纪念品）</span></h2>
+      <div id="liquidity-card"></div>
     </section>
 
     <section>
@@ -848,7 +854,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
 <script src="./core.js?v=20260708"></script>
-<script src="./app.js?v=20260722"></script>
+<script src="./app.js?v=20260807"></script>
 <script src="./liabilities.js"></script>
 <script src="./cashflow.js"></script>
 <script src="./tax.js"></script>

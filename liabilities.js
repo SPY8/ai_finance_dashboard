@@ -245,6 +245,10 @@
       </div>
     `).join("");
 
+    // ---- 资产流动性分档（总盘口径：金融盘+不动产+纪念品） ----
+    // 总览页（tab-assets）已用同一份渲染函数，此处保留以便负债页旧调用兼容（容器已迁走则 no-op）。
+    renderLiquidityCard(latestSnap, target);
+
     // ---- 负债清单 ----
     $("#liab-list").innerHTML = `
       <div class="lia-card">
@@ -786,6 +790,119 @@
   }
 
   // ponytail: 排除不动产（target.realEstate 的 key），卡片只显示金融盘
+  // ---- 资产流动性分档 ----
+  // 按变现难度把总盘资产（金融盘+不动产+纪念品）分到四档，每档汇总折 RMB 市值与占比。
+  // 归档依据：venue / module key / sub.key / phase。
+  //   即时活钱：活期/货基/短债/短国债/银行存款（venue 含"活期|货币基金|银行"或 module=daily_cash 里的现金类）
+  //   T+1 周转 ：保单现金价值、黄金ETF、可交易证券（港股通/富途/A股ETF）、短债类
+  //   半年变现 ：收租房产、实物金、UCITS/美股指数（跨境通道有摩擦）
+  //   长期锁定 ：纪念股/汽车等耗损纪念品、blocked/closed/exit 待处置仓
+  // ponytail: 阈值是经验分档，不追求精确——目的是"一眼看出多少钱能立刻花"。规则见上方注释，调档改规则即可。
+  function classifyLiquidity(s, modKey) {
+    const venue = (s.venue || "");
+    const key = s.key || "";
+    // 不动产 / 实物金 → 半年变现（房产挂牌周期长，实物金回购有折价）
+    if (venue === "不动产" || venue.indexOf("物理金库") >= 0) return "semi";
+    // 纪念股 / 汽车 / 收藏品 → 长期锁定（耗损型，不打算卖）
+    if (modKey === "_souvenirs" || s.note && /纪念|留念/.test(s.note)) return "locked";
+    // 即时活钱：活期、货币基金、银行存款、短债/短国债（T+0~T+1 兑付）
+    if (/活期|货币基金|微众|银行|存款/.test(venue) || /demand|mmf|shortbond|deposit_treasury|sgov|us_treasury/i.test(key)) {
+      // 国债阶梯 1-3 年虽是短久期但未到期前变现走二级，归周转更稳；长端美债同
+      if (/deposit_treasury|us_treasury/.test(key)) return "turn";
+      return "instant";
+    }
+    // 保单现金价值 → 周转（退保有手续费与到账周期，但确定性高）
+    if (key === "insurance_cashvalue") return "turn";
+    // 黄金类（IAU/黄金ETF）→ 周转（流动性好，但算"可变现"非"活钱"）
+    if (/gold|iau|黄金/i.test(key) || /黄金/.test(s.name || "")) return "turn";
+    // 证券持仓：港股通/富途/A股 ETF → 周转；UCITS/美股跨境 → 半年（通道与税务摩擦）
+    if (/UCITS|IBKR|Saxo/.test(venue)) return "semi";
+    if (/港股通|富途|A 股|中银证券|招商证券/.test(venue)) return "turn";
+    // blocked/closed/exit 待处置 → 长期锁定（账户未开/已清退/退出中）
+    if (s.phase === "blocked" || s.phase === "closed" || s.phase === "exit") return "locked";
+    // 兜底：能算 rmb 的算周转，算不出的不算
+    return s.rmb > 0 ? "turn" : null;
+  }
+
+  function renderLiquidityCard(snap, target) {
+    const TIERS = [
+      { key: "instant", name: "即时活钱", desc: "T+0~T+1 · 活期/货基/短债", color: "var(--ok)" },
+      { key: "turn",    name: "周转可变现", desc: "数日~2 周 · 证券/黄金/保单", color: "var(--accent)" },
+      { key: "semi",    name: "半年变现",   desc: "1~6 月 · 房产/实物金/跨境仓", color: "var(--warn)" },
+      { key: "locked",  name: "长期锁定",   desc: ">6 月或不卖 · 纪念品/待处置", color: "var(--danger)" },
+    ];
+    const container = $("#liquidity-card");
+    // 容器不在当前 tab（已搬到总览页）时静默 no-op，避免负债页报错。
+    if (!container) return;
+    if (!snap) { container.innerHTML = `<div class="lia-card" style="color:var(--text-2);padding:24px">无快照，无法统计流动性。</div>`; return; }
+    const enriched = C.enrichSnapshot(snap, target);
+    const buckets = {};
+    TIERS.forEach(t => buckets[t.key] = { total: 0, items: [] });
+    const push = (s, modKey) => {
+      if (!s || !s.rmb) return;
+      const tk = classifyLiquidity(s, modKey);
+      if (!tk || !buckets[tk]) return;
+      buckets[tk].total += s.rmb;
+      buckets[tk].items.push(s);
+    };
+    enriched.modules.forEach(m => m.subs.forEach(s => push(s, m.key)));
+    (enriched.realEstate || []).forEach(s => push(s, "_realestate"));
+    (enriched.souvenirs || []).forEach(s => push(s, "_souvenirs"));
+    const grand = TIERS.reduce((a, t) => a + buckets[t.key].total, 0);
+
+    const barHtml = TIERS.map(t => {
+      const v = buckets[t.key].total;
+      const w = grand > 0 ? (v / grand * 100) : 0;
+      return `<div title="${t.name} ${fmtK(v)}" style="width:${w.toFixed(2)}%;background:${t.color}"></div>`;
+    }).join("");
+
+    const tierHtml = TIERS.map(t => {
+      const b = buckets[t.key];
+      const share = grand > 0 ? (b.total / grand) : 0;
+      const topItems = b.items.slice().sort((x, y) => y.rmb - x.rmb).slice(0, 4);
+      const itemRows = topItems.map(s => `
+        <div class="cat-row">
+          <div class="swatch" style="background:${t.color}"></div>
+          <div class="nm">${s.name || s.key}${s.venue ? ` <span style="color:var(--text-3);font-size:10px">${s.venue}</span>` : ""}</div>
+          <div class="amt">${fmtK(s.rmb)}</div>
+          <div class="pp">${grand > 0 ? pct(s.rmb / grand, 1) : "—"}</div>
+        </div>
+      `).join("");
+      const more = b.items.length > topItems.length
+        ? `<div style="color:var(--text-3);font-size:10px;padding:2px 0 2px 22px">… 共 ${b.items.length} 项</div>` : "";
+      return `
+        <div class="lia-card" style="border-top:3px solid ${t.color}">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+            <div><b style="color:${t.color}">${t.name}</b>
+              <span style="color:var(--text-3);font-size:11px;margin-left:6px">${t.desc}</span>
+            </div>
+            <div class="num" style="font-family:'JetBrains Mono',monospace;font-size:18px">${fmtK(b.total)}</div>
+          </div>
+          <div style="color:var(--text-2);font-size:11px;margin-bottom:6px">
+            占总盘 ${pct(share,1)} · ${b.items.length} 项
+          </div>
+          <div class="cat-list">${itemRows}${more}</div>
+        </div>
+      `;
+    }).join("");
+
+    container.innerHTML = `
+      <div class="lia-card" style="margin-bottom:var(--gap)">
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:6px">
+          <span>流动性分布 · 总盘 <b class="num" style="color:var(--text-0)">${fmtK(grand)}</b> RMB</span>
+          <span>即时 + 周转 = <b class="num" style="color:var(--ok)">${pct(grand>0?(buckets.instant.total+buckets.turn.total)/grand:0,1)}</b> 可快速变现</span>
+        </div>
+        <div class="cat-bar" style="height:10px">${barHtml}</div>
+      </div>
+      <div class="cf-grid">${tierHtml}</div>
+    `;
+  }
+
+  // ponytail: 暴露流动性渲染给总览页（tab-assets），避免重复实现 classifyLiquidity。
+  // 总览页 app.js 已注入保单现金价值并 enrich，故这里接收外部的 snap/target 直接渲染。
+  window.AssetLiability = window.AssetLiability || {};
+  window.AssetLiability.renderLiquidityCard = renderLiquidityCard;
+
   function computeSnapshotTotal(snap, rates, target) {
     const reKeys = new Set((target.realEstate || []).map(function (re) { return re && re.key; }).filter(Boolean));
     return Object.entries(snap.holdings || {}).reduce((a, [k, h]) => {
