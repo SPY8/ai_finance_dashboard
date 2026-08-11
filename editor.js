@@ -228,12 +228,12 @@
     const arr = working[prop];
     return el("table", { class: "rows" }, [
       el("thead", {}, el("tr", {}, [
-        th("key"), th("名称"), th("币种"), th("金额"), th("频次"), th("kind"), th("起"), th("止"), th("备注"), th("")
+        th("key"), th("名称"), th("币种"), th("金额"), th("频次"), th("kind"), th("可支配"), th("起"), th("止"), th("备注"), th("")
       ])),
       el("tbody", {}, arr.map((row, i) => incomeRow(prop, i))),
       el("tfoot", {}, el("tr", {}, [
-        el("td", { colspan: "10" }, addBtn("＋ 新增收入", () => {
-          working[prop].push({ key: "new_in_" + Date.now(), name: "", ccy: "RMB", amount: 0, frequency: "monthly", kind: "salary", startDate: null, endDate: null, note: "" });
+        el("td", { colspan: "11" }, addBtn("＋ 新增收入", () => {
+          working[prop].push({ key: "new_in_" + Date.now(), name: "", ccy: "RMB", amount: 0, frequency: "monthly", kind: "salary", disposable: true, startDate: null, endDate: null, note: "" });
           render(); validate();
         })),
       ])),
@@ -248,11 +248,20 @@
       td({ class: "num" }, inp("number", rowGet(working, path("amount")), v => setVal(working, path("amount"), numOr(v, 0)))),
       td(sel(ENUMS.freq, rowGet(working, path("frequency")), v => setVal(working, path("frequency"), v))),
       td(sel(ENUMS.kindIn, rowGet(working, path("kind")), v => setVal(working, path("kind"), v))),
+      td(disposableToggle(prop, i)),
       td(dateIn(rowGet(working, path("startDate")), v => setVal(working, path("startDate"), v || null))),
       td(dateIn(rowGet(working, path("endDate")), v => setVal(working, path("endDate"), v || null))),
       td(inp("text", rowGet(working, path("note")) || "", v => setVal(working, path("note"), v))),
       td(delBtn(() => { working[prop].splice(i, 1); render(); validate(); })),
     ]);
+  }
+  function disposableToggle(prop, i) {
+    const row = working[prop][i];
+    const cb = el("input", { type: "checkbox" });
+    cb.checked = row.disposable !== false;
+    cb.title = "勾选=可支配（到手能花）；不勾=不可支配（如公积金，锁在账户里取不出）";
+    cb.addEventListener("change", () => { setVal(working, [prop, i, "disposable"], cb.checked); validate(); });
+    return cb;
   }
 
   function expenseTable() {

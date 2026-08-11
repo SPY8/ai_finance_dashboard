@@ -84,6 +84,16 @@
       const oneOffAnnual = oneOffEvents.reduce((a, ev) => a + toRMB(ev.amount, ev.ccy || "RMB"), 0);
       const totalExpense = totalExpenseProj + recurringAnnual;
       const totalIncome  = totalIncomeProj + recurringIncomeAnnual + oneOffAnnual;
+      // 可支配收入：从 recurring 收入里剔除 disposable=false 的项（如公积金）
+      const nonDisposableAnnual = (rec.incomes || []).reduce((a,e) => {
+        if (yearlyRecurringKeys.has(e.key)) return a;
+        if (e.disposable !== false) return a;          // 缺省 disposable=true（可支配）
+        const months = C.activeMonthsInYear(e, yearNum);
+        if (months <= 0) return a;
+        const baseAnnual = toRMB(e.amount, e.ccy) * (e.frequency === "annual" ? 1 : months);
+        return a + baseAnnual;
+      }, 0);
+      const disposableIncome = totalIncome - nonDisposableAnnual;
       const net = totalIncome - totalExpense;
 
       let prevExpense = 0;
@@ -108,6 +118,10 @@
           sub: net >= 0 ? "本年有结余" : "支出超过收入",
           help: "净结余=总收入-总支出（年化口径）",
           tone: net >= 0 ? "ok" : "danger" },
+        { label: "可支配收入（年化）", value: fmtK(disposableIncome),
+          sub: nonDisposableAnnual > 0 ? `总收入 ${fmtK(totalIncome)} − 不可支配 ${fmtK(nonDisposableAnnual)}` : "无不可支配项",
+          help: "可支配收入=总收入−不可支配收入（disposable=false 的项，如公积金；名义进账但锁在账户里取不出）",
+          tone: "ok" },
         { label: "储蓄率（年化）",    value: pct(totalIncome ? net/totalIncome : 0,1),
           sub: totalIncome && net/totalIncome > 0.3 ? "≥ 30% 健康" : "建议 ≥ 30%",
           help: "储蓄率=净结余/总收入（年化口径）",

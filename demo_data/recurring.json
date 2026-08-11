@@ -1,5 +1,5 @@
 {
-  "note": "DEMO 循环收支（精简版）：工资 / 房租 / 保险 / 大头开销。amount 是原币种；frequency=monthly|annual；endDate=应缴止/截止月份。\n\n精简原则：删掉一切月几百块以下的零碎（停车/通讯/iCloud/年检），不演示退休/离职等阶段切换剧情。保险只保留通用类型（终身寿/重疾/少儿重疾），不点公司名。\n保险 cashValueSchedule=现金价值（退保价值）年度时间序列，{年份:金额}，金额用保单 ccy。缺失年份线性插值。所有保单当年现金价值合计会作为『保单现金价值』sub 注入防御现金模块。",
+  "note": "DEMO 循环收支（精简版）：工资 / 房租 / 保险 / 大头开销。amount 是原币种；frequency=monthly|annual；endDate=应缴止/截止月份。\n\n精简原则：删掉一切月几百块以下的零碎（停车/通讯/iCloud/年检），不演示退休/离职等阶段切换剧情。保险只保留通用类型（终身寿/重疾/少儿重疾），不点公司名。\n保险 cashValueSchedule=现金价值（退保价值）年度时间序列，{年份:金额}，金额用保单 ccy。缺失年份线性插值。所有保单当年现金价值合计会作为『保单现金价值』sub 注入防御现金模块。\n\n收入项 disposable=true（缺省）=可支配（到手能花）；disposable=false=不可支配（如公积金，名义收入但锁住取不出，计入总收入但不计入可支配收入）。",
 
   "incomes": [
     {
@@ -34,6 +34,30 @@
       "startDate": null,
       "endDate": null,
       "note": "房产 A 出租中"
+    },
+    {
+      "key": "salary_ava",
+      "name": "可支配工资 · Self",
+      "ccy": "RMB",
+      "amount": 18000,
+      "frequency": "monthly",
+      "kind": "salary",
+      "disposable": true,
+      "startDate": null,
+      "endDate": null,
+      "note": "DEMO：Self 到手工资里真正可支配的部分（扣完刚性后）。disposable=true（缺省值，显式标注便于阅读）"
+    },
+    {
+      "key": "housing_fund_self",
+      "name": "公积金 · Self",
+      "ccy": "RMB",
+      "amount": 4000,
+      "frequency": "monthly",
+      "kind": "salary",
+      "disposable": false,
+      "startDate": null,
+      "endDate": null,
+      "note": "DEMO：公积金，名义收入但锁在账户里取不出，不可支配。disposable=false"
     }
   ],
 

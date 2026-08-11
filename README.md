@@ -107,6 +107,7 @@ python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
   "amount": 22000,              // 原币种金额。frequency=monthly→月额；annual→年额
   "frequency": "monthly",       // monthly | annual。月额在年化时 ×activeMonthsInYear，年额直接取
   "kind": "salary",             // 语义类型（见下表），驱动不同折算/通胀系数
+  "disposable": true,           // 收入项专属：true（缺省）=可支配；false=不可支配（如公积金，名义进账但锁住取不出）
   "startDate": null,            // 生效起（YYYY-MM 或 YYYY-MM-DD）；null 表示一直有效
   "endDate": null,              // 截止（同上）。activeMonthsInYear 用它判断当年是否仍在缴/收
   "note": "税后到手月薪 ~2.2w"
