@@ -859,17 +859,24 @@
     const tierHtml = TIERS.map(t => {
       const b = buckets[t.key];
       const share = grand > 0 ? (b.total / grand) : 0;
-      const topItems = b.items.slice().sort((x, y) => y.rmb - x.rmb).slice(0, 4);
-      const itemRows = topItems.map(s => `
+      const sorted = b.items.slice().sort((x, y) => y.rmb - x.rmb);
+      const topItems = sorted.slice(0, 4);
+      const restItems = sorted.slice(4);
+      const rowHtml = (s) => `
         <div class="cat-row">
           <div class="swatch" style="background:${t.color}"></div>
           <div class="nm">${s.name || s.key}${s.venue ? ` <span style="color:var(--text-3);font-size:10px">${s.venue}</span>` : ""}</div>
           <div class="amt">${fmtK(s.rmb)}</div>
           <div class="pp">${grand > 0 ? pct(s.rmb / grand, 1) : "—"}</div>
-        </div>
-      `).join("");
-      const more = b.items.length > topItems.length
-        ? `<div style="color:var(--text-3);font-size:10px;padding:2px 0 2px 22px">… 共 ${b.items.length} 项</div>` : "";
+        </div>`;
+      const itemRows = topItems.map(rowHtml).join("");
+      // ponytail: 用原生 <details> 做展开/收起，零 JS 依赖；默认折叠剩余条目。
+      // 剩余行与上方 topItems 同为 .cat-row 平铺，保证网格对齐与颜色一致。
+      const more = restItems.length
+        ? `<details class="lia-more">
+            <summary>展开剩余 ${restItems.length} 项（共 ${b.items.length} 项）</summary>
+            ${restItems.map(rowHtml).join("")}
+          </details>` : "";
       return `
         <div class="lia-card" style="border-top:3px solid ${t.color}">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
