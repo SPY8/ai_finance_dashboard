@@ -278,17 +278,16 @@ window.AssetCore = (function () {
 
     // 纪念品 segment（顶层 souvenirs：纪念股/汽车/收藏品等耗损型资产）：计入总盘/币种分布，
     // 不进四象限 modules，也不设目标偏离告警（这类资产不做再平衡，仅展示市值）。
-    // ponytail: 与 realEstate 同构 enrich，但子项可直接在 target 里写死 shares/raw（纪念股 1 股这类），
-    // holdings 缺失时回落到 target 自带的 shares+prices，避免 demo 无 holdings 就显示空。
+    // ponytail: 与 realEstate 同构——target.souvenirs 仅保留定性字段（key/name/ccy/note），
+    // 市值一律由 history snapshot 的 holdings 报数（证券类 shares+prices / 现金类 raw）。
+    // holdings 缺失即 missing，不计总盘，不再从 target 回落兜底。
     const souvenirItems = (target.souvenirs || []).map(function (sv) {
       const holdings = snap.holdings || {};
       const pricesObj = prices || {};
       const hk = resolveKey(sv.key, holdings);
       const pk = resolveKey(sv.key, pricesObj);
       const h = holdings[hk];
-      // holdings 优先；缺失则用 target 自带字段（shares + prices / raw）拼一个临时 holding
-      const sub = Object.assign({}, sv, { key: pk });
-      const v = valueOf(h || (sv.shares != null ? { shares: sv.shares, cost: sv.cost } : (sv.raw != null ? { raw: sv.raw, ccy: sv.ccy } : null)), sub);
+      const v = valueOf(h, Object.assign({}, sv, { key: pk }));
       if (!v) return Object.assign({}, sv, { raw:0, rmb:0, cost:0, costRMB:0, marketValue:0, missing:true });
       return Object.assign({}, sv, v);
     });

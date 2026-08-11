@@ -104,6 +104,17 @@
         },
         "property_core": {
           "raw": 1000000
+        },
+        "nvda_souvenir": {
+          "shares": 1,
+          "cost": 135.0
+        },
+        "lkncy_souvenir": {
+          "shares": 1,
+          "cost": 4.38
+        },
+        "car_self": {
+          "raw": 80000
         }
       }
     },
@@ -213,6 +224,17 @@
         },
         "property_core": {
           "raw": 1050000
+        },
+        "nvda_souvenir": {
+          "shares": 1,
+          "cost": 135.0
+        },
+        "lkncy_souvenir": {
+          "shares": 1,
+          "cost": 4.38
+        },
+        "car_self": {
+          "raw": 78000
         }
       }
     },
@@ -322,6 +344,17 @@
         },
         "property_core": {
           "raw": 1080000
+        },
+        "nvda_souvenir": {
+          "shares": 1,
+          "cost": 135.0
+        },
+        "lkncy_souvenir": {
+          "shares": 1,
+          "cost": 4.38
+        },
+        "car_self": {
+          "raw": 76000
         }
       }
     },
@@ -431,6 +464,17 @@
         },
         "property_core": {
           "raw": 1100000
+        },
+        "nvda_souvenir": {
+          "shares": 1,
+          "cost": 135.0
+        },
+        "lkncy_souvenir": {
+          "shares": 1,
+          "cost": 4.38
+        },
+        "car_self": {
+          "raw": 74000
         }
       }
     }

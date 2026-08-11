@@ -738,6 +738,12 @@
   ],
   "changelog": [
     {
+      "date": "2026-08-11",
+      "changes": [
+        "[DEMO] 纪念品池 souvenirs 维护口径对齐私有 data 与不动产：target.souvenirs 仅保留定性字段（key/name/ccy/note），移除 shares/raw/cost；市值改由 history.json 各快照 holdings 报数（证券类 shares+prices / 现金类 raw）。core.js 取消 target 回落兜底，holdings 缺失即 missing 不计总盘。四个 demo snapshot 均补齐 nvda_souvenir/lkncy_souvenir/car_self holdings。"
+      ]
+    },
+    {
       "date": "2026-01-01",
       "version": "V3.0-demo",
       "changes": [
@@ -782,23 +788,20 @@
     {
       "key": "nvda_souvenir",
       "name": "NVDA 1 股（纪念）",
-      "shares": 1,
       "ccy": "USD",
-      "note": "做空 NVDA 大赚后留 1 股留念，富途成本价显示负数（已实现盈亏倒挤）"
+      "note": "做空 NVDA 大赚后留 1 股留念，富途成本价显示负数（已实现盈亏倒挤）。市值由 history snapshot 的 holdings[nvda_souvenir].shares + prices 报数。"
     },
     {
       "key": "lkncy_souvenir",
       "name": "LKNCY 1 股（纪念）",
-      "shares": 1,
       "ccy": "USD",
-      "note": "瑞幸咖啡留念股，成本 4.38"
+      "note": "瑞幸咖啡留念股。市值由 history snapshot 的 holdings[lkncy_souvenir].shares + prices 报数。"
     },
     {
       "key": "car_self",
       "name": "自用车（消耗品）",
-      "raw": 80000,
       "ccy": "RMB",
-      "note": "[DEMO] 自用汽车，贬值型资产；不入四象限，仅纪念品池展示市值。每年按折旧手动调 raw。"
+      "note": "[DEMO] 自用汽车，贬值型资产；不入四象限，仅纪念品池展示市值。市值由 history snapshot 的 holdings[car_self].raw 报数，每年按折旧手动调 raw。"
     }
   ]
 }
