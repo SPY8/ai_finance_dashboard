@@ -40,6 +40,10 @@
     const monthlyIncomeRMB  = monthlyRows.filter(r => r.dir === "in").reduce((a,r)=>a+r.monthlyRMB, 0);
     const monthlyExpenseRMB = monthlyRows.filter(r => r.dir === "out").reduce((a,r)=>a+r.monthlyRMB, 0);
     const monthlyNet = monthlyIncomeRMB - monthlyExpenseRMB;
+    // 可支配月收入：剔除 disposable=false 的收入项（公积金/企业年金等锁账户、名义进账取不出）
+    const nonDisposableIncomeRMB = monthlyRows.filter(r => r.dir === "in" && r.disposable === false).reduce((a,r)=>a+r.monthlyRMB, 0);
+    const disposableIncomeRMB = monthlyIncomeRMB - nonDisposableIncomeRMB;
+    const disposableNet = disposableIncomeRMB - monthlyExpenseRMB;
 
     // ---- 年保费合计 ----
     const annualInsuranceRMB = (rec.expenses || [])
@@ -186,6 +190,17 @@
         help: "基于recurring.json活跃收入项；月净流入=月收入合计（折RMB）",
         tone: "ok",
         delta: `年化 +${fmtK(monthlyIncomeRMB * 12)} RMB`,
+        deltaCls: "up",
+      },
+      {
+        label: "月度可支配净流入",
+        value: "+" + fmtK(disposableIncomeRMB),
+        sub: nonDisposableIncomeRMB > 0
+          ? `可支配 ${fmtK(disposableIncomeRMB)} · 不可支配 ${fmtK(nonDisposableIncomeRMB)}`
+          : `${monthlyRows.filter(r => r.dir === "in" && r.disposable !== false).length} 项可支配收入`,
+        help: "基于月度净流入进一步统计；剔除 disposable=false 的项（公积金/企业年金等锁账户、名义进账取不出）",
+        tone: "ok",
+        delta: `年化 +${fmtK(disposableIncomeRMB * 12)} RMB`,
         deltaCls: "up",
       },
       {
