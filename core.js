@@ -189,9 +189,11 @@ window.AssetCore = (function () {
       if (!h) return null;
       const ccy = h.ccy || (sub && sub.ccy) || "RMB";
       const rate = ccy === "RMB" ? 1 : (rates[ccy] || 1);
+      // ponytail: 透传 holding 上的 liquidity（高/中/低）标注到 sub，供流动性卡片按持仓维护口径分档
+      const liquidity = h.liquidity;
       if (h.raw != null) {
         const rmb = h.raw * rate;
-        return { raw: h.raw, rmb, cost: h.raw, costRMB: rmb, marketValue: rmb, ccy };
+        return { raw: h.raw, rmb, cost: h.raw, costRMB: rmb, marketValue: rmb, ccy, liquidity };
       }
       if (h.shares != null) {
         const px = (prices[sub && sub.key] && prices[sub.key].price) != null
@@ -202,7 +204,7 @@ window.AssetCore = (function () {
         return {
           raw: mv, rmb: mv * rate,
           cost: costTotal, costRMB: costTotal * rate, marketValue: mv * rate,
-          shares: h.shares, price: px, costPerShare: h.cost, ccy,
+          shares: h.shares, price: px, costPerShare: h.cost, ccy, liquidity,
         };
       }
       return null;

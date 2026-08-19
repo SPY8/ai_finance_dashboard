@@ -303,12 +303,15 @@
     const row = working.expenses[i];
     const cv = row.cashValueSchedule || {};
     const cvText = Object.keys(cv).sort().map(y => `${y}: ${cv[y]}`).join("\n");
-    const grid = el("div", { style: "display:grid;grid-template-columns:repeat(5,1fr);gap:8px" }, [
+    const grid = el("div", { style: "display:grid;grid-template-columns:repeat(4,1fr);gap:8px" }, [
       field("policyHolder", () => inp("text", rowGet(working, path("policyHolder")) || "", v => setVal(working, path("policyHolder"), v))),
       field("insuredBy", () => inp("text", rowGet(working, path("insuredBy")) || "", v => setVal(working, path("insuredBy"), v))),
       field("policyNo", () => inp("text", rowGet(working, path("policyNo")) || "", v => setVal(working, path("policyNo"), v))),
       field("beneficiary", () => inp("text", rowGet(working, path("beneficiary")) || "", v => setVal(working, path("beneficiary"), v))),
       field("coverage", () => inp("number", rowGet(working, path("coverage")) ?? "", v => setVal(working, path("coverage"), v === "" ? null : numOr(v, null)))),
+      field("payDay (MM-DD)", () => inp("text", rowGet(working, path("payDay")) || "", v => setVal(working, path("payDay"), v))),
+      field("startDate (YYYY-MM[-DD])", () => inp("text", rowGet(working, path("startDate")) || "", v => setVal(working, path("startDate"), v || null))),
+      field("endDate (YYYY-MM[-DD])", () => inp("text", rowGet(working, path("endDate")) || "", v => setVal(working, path("endDate"), v || null))),
     ]);
     // ponytail: cashValueSchedule 用文本框，每行 YYYY:金额；容错跳过坏行
     const taWrap = field("cashValueSchedule（每行 YYYY:金额，金额用保单 ccy）", () => {

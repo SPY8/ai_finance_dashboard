@@ -324,13 +324,32 @@
     `;
 
     // ---- 保单缴费日历 ----
+    // 缴费日 payDay (MM-DD)：与今天对比算下一次缴费落在哪年，再数到 endDate 的剩余期数
+    const parsePayDay = (payDay, refYear) => {
+      if (!payDay) return null;
+      const m = String(payDay).match(/^(\d{1,2})-(\d{1,2})$/);
+      if (!m) return null;
+      return new Date(refYear, parseInt(m[1]) - 1, parseInt(m[2]));
+    };
     const policies = (rec.expenses || []).filter(e => e.kind === "insurance");
     const policyRows = policies.map(p => {
       const end = parseDate(p.endDate);
-      const yearsLeft = end ? Math.max(0, (end - today) / (1000*60*60*24*365.25)) : null;
-      const yearsLeftRound = yearsLeft != null ? Math.ceil(yearsLeft) : null;
+      // 剩余缴费期数：基于 payDay 与今天的对比
+      let periodsLeft = null, nextPayDate = null;
+      if (end) {
+        const todayMid = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        // 下一次缴费日：先看今年，已过则用明年；payDay 缺失退化为 endDate 的月日
+        let tryYear = today.getFullYear();
+        let pd = parsePayDay(p.payDay, tryYear) || new Date(tryYear, end.getMonth(), end.getDate());
+        if (pd < todayMid) { tryYear += 1; pd = parsePayDay(p.payDay, tryYear) || new Date(tryYear, end.getMonth(), end.getDate()); }
+        nextPayDate = pd;
+        // 数 pd 到 end 之间每年一期的次数（含 pd 所在年与 end 所在年）
+        periodsLeft = pd > end ? 0 : Math.max(0, end.getFullYear() - pd.getFullYear() + 1);
+      }
+      const yearsLeftRound = periodsLeft;
       const annualRMB = toRMB(p.amount, p.ccy) * (p.frequency === "annual" ? 1 : 12);
-      const remaining = yearsLeftRound != null ? annualRMB * yearsLeftRound : null;
+      const remaining = periodsLeft != null ? annualRMB * periodsLeft : null;
+      const yearsLeft = periodsLeft;
       // 总保费：若保单注明缴费期(p.payYears)则用之；否则按 startDate→endDate 估算；都没有则显示"—"
       const start = parseDate(p.startDate);
       const totalYears = p.payYears != null ? p.payYears
@@ -338,7 +357,7 @@
         : null;
       const totalPremium = totalYears != null ? p.amount * (p.frequency === "annual" ? 1 : 12) * totalYears : null;
       const cdCls = yearsLeftRound == null ? "ok" : (yearsLeftRound <= 5 ? "warn" : "ok");
-      return { p, yearsLeft, yearsLeftRound, annualRMB, remaining, totalPremium, cdCls };
+      return { p, yearsLeft, yearsLeftRound, annualRMB, remaining, totalPremium, cdCls, nextPayDate, periodsLeft };
     }).sort((a,b) => (a.yearsLeftRound ?? 999) - (b.yearsLeftRound ?? 999));
 
     const totalRemaining = policyRows.reduce((a,r) => a + (r.remaining || 0), 0);
@@ -350,9 +369,9 @@
           <span>剩余应缴尾款合计 <b class="num" style="color:var(--text-0)">${fmtK(totalRemaining)}</b> RMB</span>
         </div>
         <table class="lia-table">
-          <thead><tr><th title="保单名称/编号（展示用）">保单</th><th title="投保人（持有保单/缴费的人）">投保人</th><th title="被保人">被保人</th><th title="受益人">受益人</th><th class="r" title="原币年保费（按保单币种）">年保费</th><th class="r" title="折算成人民币的年保费（按统一汇率）">折算 (RMB/年)</th><th title="缴费截止年或缴费期">缴至</th><th class="r" title="缴费期内累计应缴总保费（原币，年保费×缴费年数）">总保费</th><th class="r" title="剩余应缴总额（按年保费×剩余年数估算）">剩余应缴尾款</th><th title="距离下一次缴费/截止的倒计时">倒计时</th></tr></thead>
+          <thead><tr><th title="保单名称/编号（展示用）">保单</th><th title="投保人（持有保单/缴费的人）">投保人</th><th title="被保人">被保人</th><th title="受益人">受益人</th><th class="r" title="原币年保费（按保单币种）">年保费</th><th class="r" title="折算成人民币的年保费（按统一汇率）">折算 (RMB/年)</th><th title="每年缴费日（MM-DD），用于与今天对比算剩余期数">缴费日</th><th title="缴费截止年或缴费期">缴至</th><th class="r" title="缴费期内累计应缴总保费（原币，年保费×缴费年数）">总保费</th><th class="r" title="剩余应缴总额（按年保费×剩余缴费期数估算）">剩余应缴尾款</th><th title="距离下一次缴费/截止的倒计时">倒计时</th></tr></thead>
           <tbody>
-            ${policyRows.map(({p, yearsLeftRound, annualRMB, remaining, totalPremium, cdCls}) => `
+            ${policyRows.map(({p, yearsLeftRound, annualRMB, remaining, totalPremium, cdCls, nextPayDate, periodsLeft}) => `
               <tr class="${cdCls === 'warn' ? 'urgent' : ''}">
                 <td><b>${p.name}</b><div style="color:var(--text-2);font-size:11px">${p.policyNo || ""} · 保额 ${fmtK(p.coverage)} ${p.ccy}</div></td>
                 <td>${p.policyHolder || "—"}</td>
@@ -360,6 +379,7 @@
                 <td>${p.beneficiary || "—"}</td>
                 <td class="r">${fmtK(p.amount)} ${p.ccy}</td>
                 <td class="r">${fmtK(annualRMB)}</td>
+                <td><span class="num" style="font-size:12px">${p.payDay || (p.endDate ? p.endDate.slice(5) : "—")}</span></td>
                 <td><span class="num" style="font-size:12px">${p.endDate || "—"}</span></td>
                 <td class="r">${totalPremium != null ? fmtK(totalPremium) + " " + p.ccy : "—"}</td>
                 <td class="r">${fmtK(remaining)}</td>
@@ -816,6 +836,12 @@
   function classifyLiquidity(s, modKey) {
     const venue = (s.venue || "");
     const key = s.key || "";
+    // 持仓维护口径优先：history snapshot 里 holding 的 liquidity 字段（高/中/低）。
+    // 高→即时活钱，中→周转可变现，低→半年变现（如企业年金/养老金，变现受限但非永久锁定）。
+    // 仅当持仓未标注 liquidity 时，才退回下面的 venue/key 正则分档。
+    if (s.liquidity === "高") return "instant";
+    if (s.liquidity === "中") return "turn";
+    if (s.liquidity === "低") return "semi";
     // 不动产 / 实物金 → 半年变现（房产挂牌周期长，实物金回购有折价）
     if (venue === "不动产" || venue.indexOf("物理金库") >= 0) return "semi";
     // 纪念股 / 汽车 / 收藏品 → 长期锁定（耗损型，不打算卖）

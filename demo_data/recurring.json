@@ -1,6 +1,5 @@
 {
   "note": "DEMO 循环收支（精简版）：工资 / 房租 / 保险 / 大头开销。amount 是原币种；frequency=monthly|annual；endDate=应缴止/截止月份。\n\n精简原则：删掉一切月几百块以下的零碎（停车/通讯/iCloud/年检），不演示退休/离职等阶段切换剧情。保险只保留通用类型（终身寿/重疾/少儿重疾），不点公司名。\n保险 cashValueSchedule=现金价值（退保价值）年度时间序列，{年份:金额}，金额用保单 ccy。缺失年份线性插值。所有保单当年现金价值合计会作为『保单现金价值』sub 注入防御现金模块。\n\n收入项 disposable=true（缺省）=可支配（到手能花）；disposable=false=不可支配（如公积金，名义收入但锁住取不出，计入总收入但不计入可支配收入）。",
-
   "incomes": [
     {
       "key": "salary_self",
@@ -60,7 +59,6 @@
       "note": "DEMO：公积金，名义收入但锁在账户里取不出，不可支配。disposable=false"
     }
   ],
-
   "expenses": [
     {
       "key": "car_insurance",
@@ -73,7 +71,6 @@
       "endDate": null,
       "note": "家用车商业险 + 交强险"
     },
-
     {
       "key": "ins_life_self",
       "name": "终身寿/重疾 · Self",
@@ -87,7 +84,8 @@
       "beneficiary": "Spouse",
       "coverage": 20000,
       "endDate": "2035-07-01",
-      "note": "DEMO：终身寿保额 USD 2 万"
+      "note": "DEMO：终身寿保额 USD 2 万",
+      "payDay": "07-01"
     },
     {
       "key": "ins_life_wife",
@@ -102,7 +100,8 @@
       "beneficiary": "Self",
       "coverage": 20000,
       "endDate": "2035-10-01",
-      "note": "DEMO：终身寿保额 USD 2 万"
+      "note": "DEMO：终身寿保额 USD 2 万",
+      "payDay": "10-01"
     },
     {
       "key": "ins_ci_kid_long",
@@ -117,7 +116,8 @@
       "beneficiary": "Spouse",
       "coverage": 15000,
       "endDate": "2042-07-01",
-      "note": "DEMO：Kid1 重疾保额 USD 1.5 万"
+      "note": "DEMO：Kid1 重疾保额 USD 1.5 万",
+      "payDay": "07-01"
     },
     {
       "key": "ins_ci_self",
@@ -131,7 +131,8 @@
       "policyNo": "DEMO-INS-004",
       "beneficiary": "Spouse",
       "coverage": 15000,
-      "endDate": "2043-11-15"
+      "endDate": "2043-11-15",
+      "payDay": "11-15"
     },
     {
       "key": "ins_ci_wife",
@@ -145,7 +146,8 @@
       "policyNo": "DEMO-INS-005",
       "beneficiary": "Self",
       "coverage": 15000,
-      "endDate": "2043-11-15"
+      "endDate": "2043-11-15",
+      "payDay": "11-15"
     },
     {
       "key": "ins_ci_kid_tiger",
@@ -161,10 +163,17 @@
       "coverage": 500000,
       "endDate": "2055-12-31",
       "cashValueSchedule": {
-        "2026": 3200, "2028": 7800, "2030": 12800, "2035": 26500,
-        "2040": 41000, "2045": 52000, "2050": 58000, "2055": 60000
+        "2026": 3200,
+        "2028": 7800,
+        "2030": 12800,
+        "2035": 26500,
+        "2040": 41000,
+        "2045": 52000,
+        "2050": 58000,
+        "2055": 60000
       },
-      "note": "DEMO：Kid2 少儿重疾保额 50w。演示现金价值随保单年度增长。"
+      "note": "DEMO：Kid2 少儿重疾保额 50w。演示现金价值随保单年度增长。",
+      "payDay": "12-31"
     }
   ]
 }
