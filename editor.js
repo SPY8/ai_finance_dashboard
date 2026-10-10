@@ -18,6 +18,9 @@
   let original = null;   // 加载时的深拷贝，用于脏检测
   let working = null;    // 表单正在编辑的对象
   let targetNames = {};  // history 编辑时：target.json 的 key→name 映射，用于 holdings 行旁注
+  let pendingRateLookups = 0;
+  const rateLookupVersions = new Map();
+  const failedRateLookups = new Set();
 
   const ENUMS = {
     ccy: ["RMB", "USD", "HKD"],
@@ -51,6 +54,11 @@
     return e;
   }
   function deepClone(o) { return JSON.parse(JSON.stringify(o)); }
+  function localDateString() {
+    const now = new Date();
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    return now.toISOString().slice(0, 10);
+  }
   function setVal(obj, path, val) {
     const ks = path.slice();
     let cur = obj;
@@ -100,6 +108,32 @@
     const j = await r.json();
     if (!r.ok || !j.ok) throw new Error(j.error || ("HTTP " + r.status));
     return j;
+  }
+  async function refreshSnapshotRates(snapshot, snapshotDate) {
+    const version = (rateLookupVersions.get(snapshot) || 0) + 1;
+    rateLookupVersions.set(snapshot, version);
+    failedRateLookups.add(snapshot);
+    pendingRateLookups++;
+    validate();
+    try {
+      const response = await fetch(`${API}/rates?date=${encodeURIComponent(snapshotDate)}`, { cache: "no-store" });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || ("HTTP " + response.status));
+      if (rateLookupVersions.get(snapshot) !== version) return;
+      if (!(working.snapshots || []).includes(snapshot) || snapshot.date !== snapshotDate) return;
+      snapshot.rates = result.rates;
+      snapshot.ratesSource = result.source;
+      failedRateLookups.delete(snapshot);
+      toast("已按快照日期获取 " + result.date + " 汇率", "ok");
+      render();
+    } catch (error) {
+      if (rateLookupVersions.get(snapshot) === version) {
+        toast("获取历史汇率失败：" + error.message, "err");
+      }
+    } finally {
+      pendingRateLookups--;
+      validate();
+    }
   }
 
   // ---------- 文件切换 ----------
@@ -435,7 +469,7 @@
   // =============== history.json ===============
   // snapshot 字段多且嵌套（rates/prices/holdings/cashFlow），结构化表格 + 折叠原始 JSON 兜底。
   // 每次报数结构相似，用下拉框选一条来改，避免全部罗列。
-  // 新增 snapshot 推荐用 scripts/new_snapshot.py；此处负责微调/删除/重排/手填。
+  // 新增 snapshot 时按快照日期抓取历史汇率；此处负责微调/删除/重排/手填。
   let selSnap = -1;  // 当前选中的 snapshot 索引；-1 表示尚未初始化，渲染时指向最近一条
   function renderHistory() {
     const snaps = working.snapshots || [];
@@ -444,7 +478,7 @@
       if (!snaps.length) selSnap = 0;
       else selSnap = snaps.reduce((mx, s, i, arr) => String(s.date || "") >= String(arr[mx].date || "") ? i : mx, 0);
     }
-    root.appendChild(card("说明", "history.json 是 append-only 快照数组。新增 snapshot 推荐用 python3 scripts/new_snapshot.py 生成后粘贴到选中那条的『原始 JSON』区；此处表格可微调数值/删除/重排。holdings 两种形态：现金类{raw}、证券类{shares,cost}（当前价取自 prices[key]）。", () => el("div", {})));
+    root.appendChild(card("说明", "history.json 是 append-only 快照数组。新增 snapshot 会按快照日期自动获取历史汇率；此处表格可微调数值/删除/重排。holdings 两种形态：现金类{raw}、证券类{shares,cost}（当前价取自 prices[key]）。", () => el("div", {})));
     // 下拉选择某次报数（按时间倒序展示，最近一条在最上；value 仍为真实数组索引，不改变 append-only 顺序）
     root.appendChild(el("div", { class: "card" }, [
       el("h2", {}, [el("span", {}, "选择报数"), el("span", { class: "hint" }, snaps.length + " 条快照")]),
@@ -458,10 +492,33 @@
         }),
         el("button", { class: "btn ghost", type: "button", title: "上一条", onclick: () => { if (selSnap > 0) { selSnap--; render(); validate(); } } }, "← 上一条"),
         el("button", { class: "btn ghost", type: "button", title: "下一条", onclick: () => { if (selSnap < snaps.length - 1) { selSnap++; render(); validate(); } } }, "下一条 →"),
-        addBtn("＋ 新增空 snapshot（手动填）", () => {
-          working.snapshots.push({ date: new Date().toISOString().slice(0, 10), rates: { USD: 7.2, HKD: 0.92 }, ratesSource: "", comment: "", cashFlow: null, prices: {}, holdings: {} });
-          selSnap = working.snapshots.length - 1;
-          render(); validate();
+        addBtn("＋ 新增 snapshot（按日期取汇率）", async (event) => {
+          const button = event.currentTarget;
+          const snapshotDate = localDateString();
+          button.disabled = true;
+          button.textContent = "获取历史汇率中…";
+          try {
+            const response = await fetch(`${API}/rates?date=${encodeURIComponent(snapshotDate)}`, { cache: "no-store" });
+            const result = await response.json();
+            if (!response.ok || !result.ok) throw new Error(result.error || ("HTTP " + response.status));
+            working.snapshots.push({
+              date: snapshotDate,
+              rates: result.rates,
+              ratesSource: result.source,
+              comment: "",
+              cashFlow: null,
+              prices: {},
+              holdings: {},
+            });
+            selSnap = working.snapshots.length - 1;
+            toast("已获取 " + result.date + " 汇率并新增快照", "ok");
+            render(); validate();
+          } catch (error) {
+            toast("新增快照失败：" + error.message, "err");
+          } finally {
+            button.disabled = false;
+            button.textContent = "＋ 新增 snapshot（按日期取汇率）";
+          }
         }),
       ]),
     ]));
@@ -482,7 +539,11 @@
       ]),
       // 元信息行
       el("div", { style: "display:grid;grid-template-columns:1fr 1fr 1fr 1.4fr;gap:8px;margin-bottom:10px" }, [
-        field("date", () => dateIn(s.date || "", v => { setVal(working, sp("date"), v || ""); validate(); })),
+        field("date", () => dateIn(s.date || "", v => {
+          setVal(working, sp("date"), v || "");
+          validate();
+          if (v) refreshSnapshotRates(s, v);
+        })),
         field("rates.USD→RMB", () => inp("number", (s.rates && s.rates.USD) ?? "", v => { setVal(working, sp("rates.USD"), numOr(v, 0)); validate(); })),
         field("rates.HKD→RMB", () => inp("number", (s.rates && s.rates.HKD) ?? "", v => { setVal(working, sp("rates.HKD"), numOr(v, 0)); validate(); })),
         field("ratesSource", () => inp("text", s.ratesSource || "", v => setVal(working, sp("ratesSource"), v))),
@@ -726,6 +787,16 @@
         if (s.cashFlow && (s.cashFlow.deposits || 0) === 0 && (s.cashFlow.withdrawals || 0) === 0)
           problems.push("snapshot #" + (i + 1) + " cashFlow 已启用但 deposits/withdrawals 均为 0");
       });
+    }
+    if (pendingRateLookups) {
+      saveBtn.disabled = true;
+      setMsg("正在按快照日期获取历史汇率…", "warn");
+      return;
+    }
+    if ((working.snapshots || []).some(snapshot => failedRateLookups.has(snapshot))) {
+      saveBtn.disabled = true;
+      setMsg("历史汇率获取失败，请重新选择该快照日期后再保存。", "err");
+      return;
     }
     const dirty = JSON.stringify(original) !== JSON.stringify(working);
     if (!dirty) { setMsg("无改动", ""); saveBtn.disabled = true; return; }

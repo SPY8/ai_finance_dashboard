@@ -4,7 +4,7 @@
 非交互报数脚本 —— 给自动化 / 能力较弱的 AI 用的「安全报数」入口。
 
 替代交互式的 new_snapshot.py：无需任何键盘输入，全部走命令行参数，
-脚本负责「继承上一条快照 → 抓实时汇率 → 应用变更 → 自动备份 → append → JSON 校验」，
+脚本负责「继承上一条快照 → 按快照日期抓历史汇率 → 应用变更 → 自动备份 → append → JSON 校验」，
 让调用方很难把 history.json 搞坏（永不覆盖旧快照、写前强制备份）。
 
 核心安全保证：
@@ -19,6 +19,7 @@
 
     # 报数：微众活期 8.5 万、VOO 现价 685、港股现价 460
     python3 scripts/add_snapshot.py \\
+        --date 2024-01-15 \\
         --set weizhong_demand.raw=85000 \\
         --set voo.price=685 \\
         --set hk_xxx.price=460 \\
@@ -41,15 +42,15 @@ import argparse
 import json
 import subprocess
 import sys
-import urllib.request
 from copy import deepcopy
 from datetime import date
 from pathlib import Path
 
+from rates import fetch_historical_rates
+
 SCRIPT_DIR = Path(__file__).resolve().parent
 BASE = SCRIPT_DIR.parent  # 项目根
 VALID_FIELDS = {"raw", "shares", "cost", "price"}
-RATES_URL = "https://open.er-api.com/v6/latest/USD"
 
 
 def die(msg: str) -> "NoReturn":  # type: ignore[name-defined]
@@ -60,22 +61,6 @@ def die(msg: str) -> "NoReturn":  # type: ignore[name-defined]
 def load_json(path: Path):
     with open(path, encoding="utf-8") as f:
         return json.load(f)
-
-
-def fetch_rates():
-    """抓实时汇率；失败返回 None（调用方决定沿用上次）。"""
-    try:
-        with urllib.request.urlopen(RATES_URL, timeout=10) as resp:
-            data = json.load(resp)
-        rates = data["rates"]
-        return {
-            "USD": round(rates["CNY"], 4),
-            "HKD": round(rates["CNY"] / rates["HKD"], 4),
-            "_source": f"open.er-api.com ({data.get('time_last_update_utc', '')})",
-        }
-    except Exception as err:  # noqa: BLE001 网络问题不应让报数崩掉
-        print(f"⚠️  抓汇率失败（{err}），将沿用上一条快照的汇率。", file=sys.stderr)
-        return None
 
 
 def build_ccy_map(target: dict, last_prices: dict) -> dict:
@@ -150,10 +135,10 @@ def main():
     ap.add_argument("--comment", default="", help="本次快照备注")
     ap.add_argument("--deposit", type=float, default=0, help="本期净注入资金（入金）")
     ap.add_argument("--withdraw", type=float, default=0, help="本期净赎回资金（出金）")
-    ap.add_argument("--date", default=str(date.today()), help="快照日期 YYYY-MM-DD，默认今天")
+    ap.add_argument("--date", default=str(date.today()), help="快照日期 YYYY-MM-DD，历史汇率按此日期查询")
     ap.add_argument("--data-dir", default=str(BASE / "data"),
                     help="数据目录，默认 <项目>/data（真实数据）")
-    ap.add_argument("--no-rates", action="store_true", help="不抓实时汇率，直接沿用上一条")
+    ap.add_argument("--no-rates", action="store_true", help="不查询历史汇率，显式沿用上一条")
     ap.add_argument("--show-keys", action="store_true", help="只列出可报数的 key 后退出")
     ap.add_argument("--dry-run", action="store_true", help="只打印将写入的 snapshot，不落盘")
     args = ap.parse_args()
@@ -188,18 +173,17 @@ def main():
     new_holdings = deepcopy(last.get("holdings", {}))
     new_prices = deepcopy(last.get("prices", {}))
 
-    # 汇率
+    # 按本次快照日期获取历史汇率
     if args.no_rates:
         rates = dict(last.get("rates", {}))
         rates_source = last.get("ratesSource", "沿用上一条（--no-rates）")
     else:
-        r = fetch_rates()
-        if r:
-            rates = {"USD": r["USD"], "HKD": r["HKD"]}
-            rates_source = r["_source"]
-        else:
-            rates = dict(last.get("rates", {}))
-            rates_source = last.get("ratesSource", "") + " (沿用·抓取失败)"
+        try:
+            rate_result = fetch_historical_rates(args.date)
+        except Exception as err:  # noqa: BLE001
+            die(f"按快照日期 {args.date} 获取历史汇率失败：{err}。未使用上一条汇率。")
+        rates = rate_result["rates"]
+        rates_source = rate_result["source"]
 
     # 应用 --set
     changed = []
@@ -270,7 +254,7 @@ def main():
 
     print(f"\n✅ 已 append 第 {len(history['snapshots'])} 条快照到 {history_path.name}")
     print("👉 下一步：`node scripts/validate_data.mjs` 体检，再 "
-          "`python3 -m http.server 8765` 刷新看板确认。")
+          "`python3 scripts/edit_server.py 8765` 刷新看板确认。")
 
 
 if __name__ == "__main__":

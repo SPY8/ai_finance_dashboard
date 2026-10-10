@@ -8,6 +8,7 @@ editor.html 直接把编辑后的 JSON 写回 data/：
     GET  /__edit__/list            列出可编辑的 data/*.json
     GET  /__edit__/load?file=xxx   读 data/<file>
     POST /__edit__/save            body {file, data, note} → 先 backup_data.py 再原子写
+    GET  /__edit__/rates?date=YYYY-MM-DD 按快照日期查询历史汇率
 
 设计原则（与 CLAUDE.md / AGENTS.md 一致）：
 - 只写 data/（私有，被 gitignore），绝不碰 demo_data/，绝不提交。
@@ -30,6 +31,8 @@ import datetime as dt
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlparse, parse_qs
+
+from rates import fetch_historical_rates
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 BASE = SCRIPT_DIR.parent
@@ -108,6 +111,14 @@ class Handler(BaseHTTPRequestHandler):
     # ---------- API ----------
     def _api_get(self, parsed):
         action = parsed.path.rsplit("/", 1)[-1]
+        if action == "rates":
+            q = parse_qs(parsed.query)
+            snapshot_date = (q.get("date", [""])[0] or "").strip()
+            try:
+                result = fetch_historical_rates(snapshot_date)
+            except Exception as e:  # noqa: BLE001
+                return self._send_json(400, {"ok": False, "error": f"historical rates lookup failed: {e}"})
+            return self._send_json(200, {"ok": True, **result})
         if action == "list":
             files = []
             if DATA.is_dir():

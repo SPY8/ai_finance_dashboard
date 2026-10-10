@@ -1,28 +1,22 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-新 snapshot 助手：抓汇率 + 询问关键股价 + 输出 snapshot 模板。
+新 snapshot 助手：按快照日期抓取历史汇率 + 询问关键股价 + 输出 snapshot 模板。
 将输出粘到 history.json 的 snapshots 数组末尾即可。
 
 用法：
     python3 scripts/new_snapshot.py
-    python3 scripts/new_snapshot.py --skip-prompt    # 只生成模板，价格留空
+    python3 scripts/new_snapshot.py --date 2024-01-15 --skip-prompt
 """
-import json, sys, urllib.request
+import argparse
+import json
 from datetime import date
 from pathlib import Path
 
+from rates import fetch_historical_rates
+
 # 自动获取相对于当前脚本的 data 目录
 DATA_DIR = str(Path(__file__).parent.parent / "data")
-
-
-def fetch_rates():
-    with urllib.request.urlopen("https://open.er-api.com/v6/latest/USD", timeout=10) as resp:
-        data = json.load(resp)
-    rates = data["rates"]
-    usd_rmb = round(rates["CNY"], 4)
-    hkd_rmb = round(rates["CNY"] / rates["HKD"], 4)
-    return {"USD": usd_rmb, "HKD": hkd_rmb, "_source": data.get("time_last_update_utc", "")}
 
 
 def load_last():
@@ -42,19 +36,24 @@ def prompt(label, default=None):
 
 
 def main():
-    skip = "--skip-prompt" in sys.argv
-    rates = fetch_rates()
-    print(f"\n📡 实时汇率：USD→RMB {rates['USD']} · HKD→RMB {rates['HKD']}")
-    print(f"   源：{rates['_source']}\n")
+    parser = argparse.ArgumentParser(description="按快照日期生成新 snapshot 模板")
+    parser.add_argument("--date", default=str(date.today()), help="快照日期 YYYY-MM-DD，默认今天；汇率按此日期查询")
+    parser.add_argument("--skip-prompt", action="store_true", help="价格沿用上次，不交互提问")
+    args = parser.parse_args()
+    snapshot_date = date.fromisoformat(args.date).isoformat()
+    rate_result = fetch_historical_rates(snapshot_date)
+    rates = rate_result["rates"]
+    print(f"\n📡 汇率（快照日期 {snapshot_date}）：USD→RMB {rates['USD']} · HKD→RMB {rates['HKD']}")
+    print(f"   源：{rate_result['source']}\n")
 
     last = load_last()
     last_prices = (last or {}).get("prices", {})
     last_holdings = (last or {}).get("holdings", {})
 
     snap = {
-        "date": str(date.today()),
-        "rates": {"USD": rates["USD"], "HKD": rates["HKD"]},
-        "ratesSource": f"open.er-api.com ({rates['_source']})",
+        "date": snapshot_date,
+        "rates": rates,
+        "ratesSource": rate_result["source"],
         "comment": "TODO 备注",
         "cashFlow": {"deposits": 0, "withdrawals": 0, "note": ""},
         "prices": {},
@@ -74,7 +73,7 @@ def main():
         ("high_div_bluechip", "RMB", "长江电力 600900"),
     ]
 
-    if skip:
+    if args.skip_prompt:
         for k, ccy, name in keys_to_ask:
             last_p = last_prices.get(k, {}).get("price")
             if last_p is None and k == "etf_563020":
@@ -99,7 +98,7 @@ def main():
     print("\n========== 复制以下 JSON，append 到 history.json 的 snapshots 数组末尾 ==========\n")
     print(json.dumps(snap, ensure_ascii=False, indent=2))
     print("\n========== END ==========\n")
-    print("👉 完成后运行 `python3 -m http.server 8765` 刷新看板验证")
+    print("👉 完成后运行 `python3 scripts/edit_server.py 8765` 刷新看板验证")
 
 
 if __name__ == "__main__":

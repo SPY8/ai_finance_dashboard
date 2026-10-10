@@ -35,13 +35,14 @@ asset_dashboard/
 
 看板顶部 KPI 会把 `key` 以 `tencent_` 开头的所有子项合并算"单一公司红线"。
 
-### 2. 汇率每次都抓
-每次报数前都抓一次实时汇率，写进 snapshot 的 `rates` 字段，永不复用旧汇率：
+### 2. 按快照日期查询汇率
+新建快照时按 snapshot 的日期查询历史汇率，写进 `rates` 字段；如日期无报价，记录 API 返回的最近可用日期：
 
 ```bash
 cd memory/areas/life_planning/asset_dashboard
-python3 scripts/fetch_rates.py            # 看一眼
-python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
+python3 scripts/fetch_rates.py                   # 查询最新汇率
+python3 scripts/fetch_rates.py --date 2024-01-15  # 按日期查历史汇率
+python3 scripts/fetch_rates.py --json --date 2024-01-15  # 输出带历史汇率的 snapshot 模板
 ```
 
 ### 3. history.json append-only
@@ -244,9 +245,8 @@ python3 scripts/fetch_rates.py --json     # 输出 snapshot 模板
 > 报数：今天微众活期 X 万、富途货基 Y 美元、腾讯（富途）Z 港币……
 
 小龙猫会：
-1. `python3 scripts/fetch_rates.py` 抓实时汇率
-2. 在 `history.json` 末尾 append 一条新 snapshot
-3. 不动 `target.json`（除非你说要改战略）
+1. `python3 scripts/add_snapshot.py --date YYYY-MM-DD ...` 按快照日期查询历史汇率、备份并 append snapshot；只需要模板时可用 `python3 scripts/new_snapshot.py --date YYYY-MM-DD`
+2. 不动 `target.json`（除非你说要改战略）
 
 ## 模块结构（target.json · 标普家庭资产四象限）
 

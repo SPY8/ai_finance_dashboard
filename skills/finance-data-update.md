@@ -34,7 +34,7 @@ python3 scripts/add_snapshot.py \
 node scripts/validate_data.mjs
 ```
 
-`add_snapshot.py` 自动做：继承上一条快照 → 抓实时汇率 → **写前强制备份** → **只 append 不覆盖** → 写后重新解析校验。
+`add_snapshot.py` 自动做：继承上一条快照 → 按 `--date` 指定的快照日期获取历史汇率 → **写前强制备份** → **只 append 不覆盖** → 写后重新解析校验。日期落在无报价日时，记录 API 返回的最近可用日期；获取失败会中止，不会静默沿用旧汇率。使用 `--no-rates` 才会显式沿用上一条快照的汇率。
 不确定要不要落盘时先加 `--dry-run` 看一眼。
 
 **`--set key.field=value` 字段**：
@@ -77,7 +77,7 @@ node scripts/validate_data.mjs
 ## 关键约定（红线，别违反）
 
 - **只 append 不覆盖**：`history.json` 的 `snapshots` 是时间序列，永远在末尾追加旧的原封不动
-- **汇率每次都抓**：报数走脚本会自动抓；手动场景用 `python3 scripts/fetch_rates.py`，永不复用旧汇率
+- **汇率按快照日期获取**：新建快照走 `add_snapshot.py` / `new_snapshot.py` 或维护页新增按钮，按快照日期抓取历史汇率；手动查实时汇率仍可用 `python3 scripts/fetch_rates.py`
 - **成本价用交易价**：新建仓 `cost = 交易价`；加仓用加权均价 `(old_shares*old_cost + new_shares*new_price) / total_shares`
 - **清仓记录**：`shares=0, cost=0`，在 note 里写清仓日期/价格/盈亏
 - **改 data/ 前先备份**：脚本会自动备份；手动改前先 `python3 scripts/backup_data.py "说明"`
