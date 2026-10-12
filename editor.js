@@ -478,11 +478,19 @@
       if (!snaps.length) selSnap = 0;
       else selSnap = snaps.reduce((mx, s, i, arr) => String(s.date || "") >= String(arr[mx].date || "") ? i : mx, 0);
     }
-    root.appendChild(card("说明", "history.json 是 append-only 快照数组。新增 snapshot 会按快照日期自动获取历史汇率；此处表格可微调数值/删除/重排。holdings 两种形态：现金类{raw}、证券类{shares,cost}（当前价取自 prices[key]）。", () => el("div", {})));
+    root.appendChild(card("说明", "history.json 是 append-only 快照数组。新增 snapshot 会按快照日期自动获取历史汇率；可选参考最近快照的价格和持仓。此处表格可微调数值/删除/重排。holdings 两种形态：现金类{raw}、证券类{shares,cost}（当前价取自 prices[key]）。", () => el("div", {})));
     // 下拉选择某次报数（按时间倒序展示，最近一条在最上；value 仍为真实数组索引，不改变 append-only 顺序）
     root.appendChild(el("div", { class: "card" }, [
       el("h2", {}, [el("span", {}, "选择报数"), el("span", { class: "hint" }, snaps.length + " 条快照")]),
       el("div", { style: "display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" }, [
+        (() => {
+          const checkbox = el("input", { type: "checkbox" });
+          checkbox.checked = false;
+          return el("label", { style: "display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 0" }, [
+            checkbox,
+            "参考最近快照的价格和持仓",
+          ]);
+        })(),
         field("snapshot", () => {
           const order = snaps.map((_, i) => i).sort((a, b) => String(snaps[b].date || "").localeCompare(String(snaps[a].date || "")));
           const e = el("select", {}, order.map(i => el("option", { value: String(i) }, "#" + (i + 1) + " · " + (snaps[i].date || "?") + (snaps[i].comment ? "  " + String(snaps[i].comment).slice(0, 30) : ""))));
@@ -501,17 +509,20 @@
             const response = await fetch(`${API}/rates?date=${encodeURIComponent(snapshotDate)}`, { cache: "no-store" });
             const result = await response.json();
             if (!response.ok || !result.ok) throw new Error(result.error || ("HTTP " + response.status));
+            const referencePrevious = button.parentElement.querySelector('input[type="checkbox"]').checked;
+            const previous = snaps.reduce((latest, snapshot) =>
+              !latest || String(snapshot.date || "") > String(latest.date || "") ? snapshot : latest, null);
             working.snapshots.push({
               date: snapshotDate,
               rates: result.rates,
               ratesSource: result.source,
               comment: "",
               cashFlow: null,
-              prices: {},
-              holdings: {},
+              prices: referencePrevious && previous ? deepClone(previous.prices || {}) : {},
+              holdings: referencePrevious && previous ? deepClone(previous.holdings || {}) : {},
             });
             selSnap = working.snapshots.length - 1;
-            toast("已获取 " + result.date + " 汇率并新增快照", "ok");
+            toast("已获取 " + result.date + " 汇率并新增快照" + (referencePrevious && previous ? "（已参考最近快照）" : ""), "ok");
             render(); validate();
           } catch (error) {
             toast("新增快照失败：" + error.message, "err");
