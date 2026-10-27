@@ -735,7 +735,7 @@
       return;
     }
 
-    // 年份范围：所有 schedule 首年 → 末年；至少覆盖到今天 +10 年
+    // 年份范围：所有 schedule 首年 → 末年；至少覆盖今年至未来 10 年
     let yMin = Infinity, yMax = -Infinity;
     policies.forEach(p => {
       const yrs = Object.keys(p.cashValueSchedule).map(Number);
@@ -745,7 +745,9 @@
       yMax = Math.max(yMax, yrs[yrs.length-1]);
     });
     if (!isFinite(yMin)) { container.innerHTML = ""; return; }
-    yMax = Math.max(yMax, today.getFullYear() + 10);
+    const currentYear = today.getFullYear();
+    yMin = Math.min(yMin, currentYear);
+    yMax = Math.max(yMax, currentYear + 10);
     const years = [];
     for (let y = yMin; y <= yMax; y++) years.push(y);
 
@@ -785,10 +787,12 @@
 
     if (insuranceCVChart) insuranceCVChart.dispose();
     insuranceCVChart = echarts.init(container, "dark");
+    C.registerChart(insuranceCVChart);
     insuranceCVChart.setOption({
       backgroundColor: "transparent",
       tooltip: {
         trigger: "axis",
+        alwaysShowContent: true,
         backgroundColor: "rgba(19,23,31,0.95)",
         borderColor: "#1f2533",
         textStyle: { color: "#e8ecf3", fontSize: 11 },
@@ -820,6 +824,11 @@
         axisLabel: { color: "#5e677a", fontSize: 10, fontFamily: "JetBrains Mono", formatter: v => fmtK(Math.abs(v)) },
       },
       series,
+    });
+    insuranceCVChart.dispatchAction({
+      type: "showTip",
+      seriesIndex: series.length - 1,
+      dataIndex: years.indexOf(currentYear),
     });
     window.addEventListener("resize", function () { if (insuranceCVChart) insuranceCVChart.resize(); });
   }

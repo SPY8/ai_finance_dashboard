@@ -154,6 +154,7 @@ python3 scripts/fetch_rates.py --json --date 2024-01-15  # 输出带历史汇率
 - key 是**年份字符串**（如 `"2026"`），value 是**保单原币种金额**（不是 RMB，按 `ccy` + 当年 `rates` 折算）。
 - **缺失年份线性插值**：只填关键节点年份即可，中间年份自动算。早于首年取 0，晚于末年取末年值（现金价值表通常给到某保单年度后趋稳）。
 - 取值年份由 snapshot 的 `date`（资产 Tab）/ 当前年份（负债 Tab KPI）决定——所以**报数时填的 snapshot 日期年份要和想取的现金价值年份对得上**。
+- 保单现金价值曲线默认选中当前年份，显示各保单及合计的 RMB 明细；移动鼠标可查看其他年份，移出图表后保留最后查看的明细。
 - 所有保单当年现金价值合计会被注入 `history.json` 最新 snapshot 的 `holdings.insurance_cashvalue`，由 target.json「防御现金」模块的 `insurance_cashvalue` sub 承接，**参与总盘**。已存在 `insurance_cashvalue` 不覆盖，`sumRMB>0` 才写入。
 - 兼容旧字段 `cashValueRMB`（字面 RMB，当当前值用，仅 schedule 缺失时兜底）——新数据建议直接用 `cashValueSchedule`。
 

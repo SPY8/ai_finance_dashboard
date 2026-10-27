@@ -13,6 +13,7 @@
 - 🎯 战略与规划 / 📈 趋势与复盘（含目标配置 & 变更历史）：[target.js](file:///Users/bigcat/Library/Mobile%20Documents/com~apple~CloudDocs/Muse/projects/ai-finance-dashboard/target.js)
 - 💸 负债与刚性：[liabilities.js](file:///Users/bigcat/Library/Mobile%20Documents/com~apple~CloudDocs/Muse/projects/ai-finance-dashboard/liabilities.js)
 - 🌊 现金流追踪：[cashflow.js](file:///Users/bigcat/Library/Mobile%20Documents/com~apple~CloudDocs/Muse/projects/ai-finance-dashboard/cashflow.js)
+- 🧾 预算分析与计划（年度/月度预算维护、分类限额、储蓄率与应急金目标）：[budget.js](./budget.js)
 - 🛡️ 风险与防守（策略/政策武器库 + 风险图谱）：[risk_policy.js](file:///Users/bigcat/Library/Mobile%20Documents/com~apple~CloudDocs/Muse/projects/ai-finance-dashboard/risk_policy.js)
 - 🧮 税务计算：[tax.js](file:///Users/bigcat/Library/Mobile%20Documents/com~apple~CloudDocs/Muse/projects/ai-finance-dashboard/tax.js)
 

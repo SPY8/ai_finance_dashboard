@@ -436,6 +436,45 @@
   .cat-row .nm{color:var(--text-0)}
   .cat-row .amt{text-align:right;font-family:"JetBrains Mono",monospace}
   .cat-row .pp{text-align:right;color:var(--text-3);font-size:10px;font-family:"JetBrains Mono",monospace}
+  /* ============= BUDGET PLANNING ============= */
+  .budget-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .budget-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .budget-kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .budget-actions .btn{min-height:30px}
+  .budget-actions .btn:disabled{opacity:.55;cursor:not-allowed}
+  .budget-actions .btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .budget-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap)}
+  .budget-field{display:flex;flex-direction:column;gap:5px;background:var(--bg-1);border:1px solid var(--line);border-radius:var(--radius);padding:12px;box-shadow:var(--panel-shadow)}
+  .budget-field label{font-size:var(--fs-xs);color:var(--text-2)}
+  .budget-field small{font-size:10px;color:var(--text-3);line-height:1.45}
+  .budget-input{width:100%;min-height:34px;background:var(--bg-2);border:1px solid var(--line);border-radius:var(--radius-sm);padding:6px 8px;color:var(--text-0);font:inherit;font-family:"JetBrains Mono",monospace;font-size:var(--fs-sm)}
+  .budget-input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+  .budget-status{min-height:1.4em;color:var(--text-2);font-size:var(--fs-xs)}
+  .budget-status[data-state="error"]{color:var(--danger)}
+  .budget-note{color:var(--text-2);font-size:var(--fs-xs);line-height:1.6;margin:0 0 10px}
+  .budget-table-wrap{overflow-x:auto}
+  #budget-category-table{min-width:900px}
+  #budget-category-table th,#budget-category-table td{vertical-align:middle}
+  #budget-category-table th:nth-child(n+2),#budget-category-table td:nth-child(n+2){text-align:right}
+  #budget-category-table th:first-child,#budget-category-table td:first-child{text-align:left}
+  .budget-cat{display:flex;align-items:center;gap:7px;min-width:120px}
+  .budget-cat .swatch{width:8px;height:8px;border-radius:2px;flex:none}
+  .budget-edit{display:flex;justify-content:flex-end;align-items:center;gap:6px;min-width:220px}
+  .budget-period{width:82px;min-height:34px}
+  .budget-amount{width:132px;min-height:34px;text-align:right}
+  .budget-progress{min-width:130px}
+  .budget-track{height:6px;border-radius:99px;background:var(--bg-3);overflow:hidden;margin:3px 0}
+  .budget-track span{display:block;height:100%;width:0;background:var(--accent);border-radius:inherit;transition:width .18s ease}
+  .budget-track span.over{background:var(--danger)}
+  .budget-progress small{color:var(--text-2);font-size:10px}
+  .budget-insight{background:var(--bg-1);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:var(--radius);padding:10px 12px;color:var(--text-1);font-size:var(--fs-sm);line-height:1.6}
+  .budget-insight.warn{border-left-color:var(--warn)}
+  .budget-insight.danger{border-left-color:var(--danger)}
+  .budget-insight + .budget-insight{margin-top:7px}
+  @media (max-width: 820px){.budget-fields{grid-template-columns:1fr 1fr}}
+  @media (max-width: 1080px){.budget-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+  @media (max-width: 600px){.budget-kpis{grid-template-columns:1fr}}
+  @media (max-width: 560px){.budget-fields{grid-template-columns:1fr}.budget-toolbar{align-items:flex-start}}
   .lia-more{padding:2px 0 2px 22px}
   .lia-more > summary{cursor:pointer;list-style:none;color:var(--text-3);font-size:10px}
   .lia-more[open] > summary{margin-bottom:2px}
@@ -740,6 +779,36 @@
         </table>
       </div>
     </section>
+
+    <!-- ↓↓↓ 预算组：年度预算分析与计划，计划仅保存在当前浏览器 ↓↓↓ -->
+    <section data-subgroup="预算分析与计划" id="budget-dashboard">
+      <div class="budget-toolbar">
+        <div>
+          <h2>年度预算分析与计划</h2>
+      <p class="budget-note">结合年度流水预测与未被流水覆盖的循环收支；每类支出只维护年度或月度金额之一，计划仅保存在当前浏览器。</p>
+        </div>
+        <div class="budget-actions">
+          <label for="budget-year" style="font-size:var(--fs-xs);color:var(--text-2)">预算年度</label>
+          <select id="budget-year" class="date-picker" aria-label="选择预算年度"></select>
+          <button class="btn ghost" id="budget-reset" type="button">恢复实际基线</button>
+          <button class="btn primary" id="budget-save" type="button">保存本地计划</button>
+        </div>
+      </div>
+      <div class="kpis budget-kpis" id="budget-kpis"></div>
+      <div class="budget-fields" id="budget-controls"></div>
+      <div class="budget-status" id="budget-status" role="status" aria-live="polite"></div>
+      <div id="budget-insights"></div>
+    </section>
+
+    <section>
+      <h2>分类预算分配<span class="hint">年化支出预测与各类别额度逐项对照</span></h2>
+      <div class="lia-card budget-table-wrap">
+        <table class="lia-table" id="budget-category-table">
+          <thead><tr><th>支出类别</th><th>年化支出预测</th><th>维护周期 / 预算金额（RMB）</th><th>预算使用</th><th>预算余量</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
   </div>
 
   <!-- =========== Tab 4: 风险与宏观（风险防守 + 人口宏观）=========== -->
@@ -861,6 +930,7 @@
 <script src="./app.js?v=20260807"></script>
 <script src="./liabilities.js"></script>
 <script src="./cashflow.js"></script>
+<script src="./budget.js"></script>
 <script src="./tax.js"></script>
 <script src="./target.js"></script>
 <script src="./risk_policy.js?v=20260623b"></script>

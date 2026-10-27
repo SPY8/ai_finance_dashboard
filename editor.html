@@ -4,6 +4,18 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>数据编辑器 · 家庭财务看板</title>
+<script>
+  (function () {
+    try {
+      const stored = window.localStorage && window.localStorage.getItem("afd_theme");
+      const prefersLight = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+      const theme = stored || (prefersLight ? "light" : "dark");
+      document.documentElement.setAttribute("data-theme", theme);
+    } catch (err) {
+      document.documentElement.setAttribute("data-theme", "dark");
+    }
+  })();
+</script>
 <style>
   :root{
     --bg-0:#15120f; --bg-1:#1d1916; --bg-2:#26211d; --bg-3:#312922;

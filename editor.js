@@ -483,14 +483,6 @@
     root.appendChild(el("div", { class: "card" }, [
       el("h2", {}, [el("span", {}, "选择报数"), el("span", { class: "hint" }, snaps.length + " 条快照")]),
       el("div", { style: "display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap" }, [
-        (() => {
-          const checkbox = el("input", { type: "checkbox" });
-          checkbox.checked = false;
-          return el("label", { style: "display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 0" }, [
-            checkbox,
-            "参考最近快照的价格和持仓",
-          ]);
-        })(),
         field("snapshot", () => {
           const order = snaps.map((_, i) => i).sort((a, b) => String(snaps[b].date || "").localeCompare(String(snaps[a].date || "")));
           const e = el("select", {}, order.map(i => el("option", { value: String(i) }, "#" + (i + 1) + " · " + (snaps[i].date || "?") + (snaps[i].comment ? "  " + String(snaps[i].comment).slice(0, 30) : ""))));
@@ -531,6 +523,14 @@
             button.textContent = "＋ 新增 snapshot（按日期取汇率）";
           }
         }),
+        (() => {
+          const checkbox = el("input", { type: "checkbox" });
+          checkbox.checked = false;
+          return el("label", { style: "display:flex;align-items:center;gap:6px;cursor:pointer;padding:7px 0" }, [
+            checkbox,
+            "参考最近快照的价格和持仓",
+          ]);
+        })(),
       ]),
     ]));
     if (snaps.length) root.appendChild(snapBlock(selSnap));
